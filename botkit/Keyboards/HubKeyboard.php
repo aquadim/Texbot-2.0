@@ -19,9 +19,9 @@ new TextKeyboardButton("Оценки", ButtonColor::Primary),
 new TextKeyboardButton("Что дальше?", ButtonColor::Primary),
 ],
 [
-new TextKeyboardButton("Где преподаватель?", ButtonColor::Primary),
-new TextKeyboardButton("Расписание группы", ButtonColor::Primary),
-new TextKeyboardButton("Звонки", ButtonColor::Primary),
+new TextKeyboardButton("Где преподаватель?", ButtonColor::Secondary),
+new TextKeyboardButton("Расписание группы", ButtonColor::Secondary),
+new TextKeyboardButton("Звонки", ButtonColor::Secondary),
 ],
 [
 new TextKeyboardButton("Профиль", ButtonColor::Secondary),

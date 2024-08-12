@@ -50,6 +50,10 @@ class Student {
     public function setAversLogin(string $login) : void {
         $this->avers_login = $login;
     }
+    
+    public function getAversLogin() : ?string {
+        return $this->avers_login;
+    }
 
     // Пароль хэшируется алгоритмом SHA-1
     public function setAversPassword(string $password) : void {

@@ -185,7 +185,7 @@ class Bot {
             return;
         }
         
-        if (is_a(self::$event->getChat(), GroupChat::class) == $should_be_from_group_chat) {
+        if (is_a(self::$event->getChat(), GroupChat::class) != $should_be_from_group_chat) {
             return;
         }
         

@@ -286,7 +286,7 @@ class VkComDriver implements IDriver {
             "keyboard" => $keyboard_string
         ]);
         
-        // $this->showContent("vk api response", $response);
+        //$this->showContent("vk api response", $response);
         
         $msg->setId(strval($response["response"]));
         $msg->setChat($chat);

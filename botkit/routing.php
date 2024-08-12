@@ -13,12 +13,18 @@ Bot::onCallback(CallbackType::SelectedAccountType, 'OnboardingController@selecte
 Bot::onCallback(CallbackType::SelectedGroupNum, 'UtilController@advanceGroupSelection');
 Bot::onCallback(CallbackType::SkipCredentials, 'OnboardingController@skipCredentials');
 Bot::onCallback(CallbackType::EnterJournalLogin, 'OnboardingController@enterJournalLogin');
+Bot::onCallback(CallbackType::ChangeGroup, 'HubController@changeStudentGroupStart');
 
 // Обратные вызовы: выбрана группа
 Bot::onCallback(CallbackType::SelectedGroupForStudentRegister, 'OnboardingController@studentSelectedGroup');
+Bot::onCallback(CallbackType::SelectedGroupForStudentEdit, 'HubController@changeStudentGroupEnd');
 
 // Обратные вызовы: пагинация
 Bot::onCallback(CallbackType::GroupSelectionPagination, 'UtilController@groupSelectionPage');
+
+// Главное меню
+Bot::onText("Звонки", 'HubController@bellsSchedule', State::Hub);
+Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
 
 // АВЕРС
 Bot::whenUserInState(State::EnterJournalLogin, 'OnboardingController@loginEnteredAskPassword');

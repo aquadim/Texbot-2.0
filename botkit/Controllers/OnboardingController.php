@@ -5,6 +5,7 @@ namespace BotKit\Controllers;
 
 use BotKit\Controller;
 use BotKit\Models\Messages\TextMessage as M;
+use BotKit\Models\Keyboards\ClearKeyboard;
 use BotKit\Database;
 
 use BotKit\Entities\Student;
@@ -90,7 +91,9 @@ class OnboardingController extends Controller {
     // Показ сообщения с просьбой ввести логин
     public function enterJournalLogin() {
         $this->u->setState(State::EnterJournalLogin);
-        $this->editAssociatedMessage(M::create("Введи логин"));
+        $m = M::create("Введи логин");
+        $m->setKeyboard(new ClearKeyboard());
+        $this->editAssociatedMessage($m);
     }
     
     // Показ сообщения с просьбой ввести логин

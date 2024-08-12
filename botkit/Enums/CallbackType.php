@@ -19,9 +19,12 @@ enum CallbackType: int {
     // Пропуск ввода логина и пароля
     case SkipCredentials = 6;
     
-    #region После выбора группы
-    // В соответствии с GroupSelectionGoal::StudentRegister
+    // Смена группы
+    case ChangeGroup = 7;
+    
+    #region После выбора групп
     case SelectedGroupForStudentRegister = 3;
+    case SelectedGroupForStudentEdit = 8;
     #endregion
     
     #region Пагинация
