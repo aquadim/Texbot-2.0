@@ -1,0 +1,3 @@
+onSelected -- когда вызывается Bot::ensureDriversLoaded
+onProcessStart -- когда начинается обработка запроса
+onProcessEnd -- когда завершается обработка запроса
