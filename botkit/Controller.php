@@ -59,4 +59,9 @@ class Controller {
     protected function editAssociatedMessage(IMessage $new) {
         $this->d->editMessageOfCurrentEvent($new);
     }
+    
+    // Возвращает текст текущего события
+    protected function getEventText() : string {
+        return $this->e->getText();
+    }
 }

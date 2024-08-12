@@ -356,8 +356,7 @@ class VkComDriver implements IDriver {
                     // Это обычная текстовая кнопка
                     $button_action = [
                         "type" => "text",
-                        "label" => $button->getText(),
-                        "payload" => json_encode($button->getValue())
+                        "label" => $button->getText()
                     ];
                 } else if (is_a($button, CallbackButton::class)) {
                     // Кнопка обратного вызова

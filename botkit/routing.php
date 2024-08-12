@@ -11,12 +11,18 @@ use BotKit\Enums\CallbackType;
 Bot::onCallback(CallbackType::ShowTos, 'TOSController@showTos');
 Bot::onCallback(CallbackType::SelectedAccountType, 'OnboardingController@selectedAccountType');
 Bot::onCallback(CallbackType::SelectedGroupNum, 'UtilController@advanceGroupSelection');
+Bot::onCallback(CallbackType::SkipCredentials, 'OnboardingController@skipCredentials');
+Bot::onCallback(CallbackType::EnterJournalLogin, 'OnboardingController@enterJournalLogin');
 
 // Обратные вызовы: выбрана группа
 Bot::onCallback(CallbackType::SelectedGroupForStudentRegister, 'OnboardingController@studentSelectedGroup');
 
 // Обратные вызовы: пагинация
 Bot::onCallback(CallbackType::GroupSelectionPagination, 'UtilController@groupSelectionPage');
+
+// АВЕРС
+Bot::whenUserInState(State::EnterJournalLogin, 'OnboardingController@loginEnteredAskPassword');
+Bot::whenUserInState(State::EnterJournalPassword, 'OnboardingController@passwordEnteredShowHub');
 
 // Первое взаимодействие
 Bot::whenUserInState(State::FirstInteraction, 'OnboardingController@welcome');

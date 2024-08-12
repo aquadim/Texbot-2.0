@@ -13,6 +13,12 @@ enum CallbackType: int {
     // Выбран курс группы
     case SelectedGroupNum = 2;
     
+    // Переход к вводу логина АВЕРС
+    case EnterJournalLogin = 5;
+    
+    // Пропуск ввода логина и пароля
+    case SkipCredentials = 6;
+    
     #region После выбора группы
     // В соответствии с GroupSelectionGoal::StudentRegister
     case SelectedGroupForStudentRegister = 3;
