@@ -6,6 +6,7 @@ namespace BotKit\Controllers;
 use BotKit\Controller;
 use BotKit\Models\Messages\TextMessage as M;
 use BotKit\Models\Keyboards\ClearKeyboard;
+use BotKit\Models\Attachments\PhotoAttachment;
 use BotKit\Database;
 
 use BotKit\Entities\Student;
@@ -21,7 +22,36 @@ use BotKit\Keyboards\ProfileKeyboard;
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
 
+use Texbot\GenericImagen;
+use function Texbot\getWaitMessage;
+
 class HubController extends Controller {
+    
+    // Оценки
+    public function grades() {
+        $wait = getWaitMessage();
+        $this->reply($wait);
+        
+        $table = [];
+        for ($y = 0; $y < 5; $y++) {
+            $row = [];
+            for ($x = 0; $x < 5; $x++) {
+                $row[] = "x: $x y: $y";
+            }
+            $table[] = $row;
+        }
+        
+        $filename = GenericImagen::generateTable(
+            $table,
+            'Оценки',
+            [0, 0, 0, 0, 0],
+            5
+        );
+        
+        $m = M::create("Готово");
+        $m->addPhoto(PhotoAttachment::fromFile($filename));
+        $this->edit($wait, $m);
+    }
     
     // Расписание звонков
     public function bellsSchedule() {

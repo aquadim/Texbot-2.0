@@ -51,7 +51,7 @@ class VkComDriver implements IDriver {
     protected IEvent $current_event;
     
     // Выполняет метод API
-    public function execApiMethod(string $method, array $fields) : array {
+    public function execApiMethod(string $method, array $fields) : ?array {
         $fields["v"] = $this->api_version;
         $fields["access_token"] = $_ENV["vkcom_apikey"];
         $post_fields = http_build_query($fields);
@@ -69,10 +69,16 @@ class VkComDriver implements IDriver {
 
     #region IDriver
     public function forThis() : bool {
-        $this->post_body = json_decode(
+        $data = json_decode(
             file_get_contents('php://input'),
             true
         );
+        
+        if ($data === null) {
+            return false;
+        }
+        
+        $this->post_body = $data;
         
         // В запросе от ВКонтакте должны быть эти поля:
         $required = ['type', 'group_id'];
@@ -233,8 +239,8 @@ class VkComDriver implements IDriver {
     
     public function editMessage(IMessage $old, IMessage $new) : void {
         $attachment_strings = $this->getAttachmentStrings($new->getPhotos());
-        $keyboard_string = $this->getKeyboardString($msg->getKeyboard());
-        $reply_to_string = $this->getReplyToString($msg);
+        $keyboard_string = $this->getKeyboardString($new->getKeyboard());
+        $reply_to_string = $this->getReplyToString($new);
         
         $this->execApiMethod("messages.edit",
         [
@@ -278,7 +284,7 @@ class VkComDriver implements IDriver {
         
         $response = $this->execApiMethod("messages.send",
         [
-            "peer_id" => $chat->getIdOnPlatform(),
+            "peer_ids" => $chat->getIdOnPlatform(),
             "random_id" => 0,
             "message" => $msg->getText(),
             "reply_to" => $reply_to_string,
@@ -286,9 +292,7 @@ class VkComDriver implements IDriver {
             "keyboard" => $keyboard_string
         ]);
         
-        //$this->showContent("vk api response", $response);
-        
-        $msg->setId(strval($response["response"]));
+        $msg->setId(strval($response["response"][0]["conversation_message_id"]));
         $msg->setChat($chat);
     }
     

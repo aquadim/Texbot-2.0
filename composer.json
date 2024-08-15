@@ -16,8 +16,12 @@
     ],
     "autoload": {
         "psr-4": {
-            "BotKit\\": "botkit/"
-        }
+            "BotKit\\": "botkit/",
+            "Texbot\\": "texbot/"
+        },
+        "files": [
+            "texbot/Utils.php"
+        ]
     },
     "license": "MIT"
 }

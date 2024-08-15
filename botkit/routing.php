@@ -23,6 +23,7 @@ Bot::onCallback(CallbackType::SelectedGroupForStudentEdit, 'HubController@change
 Bot::onCallback(CallbackType::GroupSelectionPagination, 'UtilController@groupSelectionPage');
 
 // Главное меню
+Bot::onText("Оценки", 'HubController@grades', State::Hub);
 Bot::onText("Звонки", 'HubController@bellsSchedule', State::Hub);
 Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
 
