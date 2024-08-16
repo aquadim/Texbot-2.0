@@ -24,6 +24,7 @@ use BotKit\Enums\CallbackType;
 
 use Texbot\GenericImagen;
 use function Texbot\getWaitMessage;
+use function Texbot\getDoneText;
 
 class HubController extends Controller {
     
@@ -48,7 +49,7 @@ class HubController extends Controller {
             5
         );
         
-        $m = M::create("Готово");
+        $m = M::create(getDoneText(true));
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->edit($wait, $m);
     }
