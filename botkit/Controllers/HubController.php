@@ -13,6 +13,7 @@ use BotKit\Entities\Student;
 use BotKit\Entities\CollegeGroup;
 
 use BotKit\Keyboards\TOSKeyboard;
+use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
 use BotKit\Keyboards\TeacherOrStudentKeyboard;
 use BotKit\Keyboards\SelectGroup1Keyboard;
 use BotKit\Keyboards\HubKeyboard;
@@ -23,30 +24,55 @@ use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
 
 use Texbot\GenericImagen;
+use Texbot\GradesImagen;
 use function Texbot\getWaitMessage;
 use function Texbot\getDoneText;
+use function Texbot\getStudentGrades;
 
 class HubController extends Controller {
     
     // Оценки
     public function grades() {
+        // TODO: поиск кэшированного
+        
         $wait = getWaitMessage();
         $this->reply($wait);
         
-        $table = [];
-        for ($y = 0; $y < 5; $y++) {
-            $row = [];
-            for ($x = 0; $x < 5; $x++) {
-                $row[] = "x: $x y: $y";
-            }
-            $table[] = $row;
+        // Поиск студента
+        $em = Database::getEm();
+        $student = $em->getRepository(Student::class)->findOneBy(
+            ['user' => $this->u->getEntity()]
+        );
+        
+        // Проверка заполненности логина и пароля
+        $login = $student->getAversLogin();
+        $password = $student->getAversPassword();
+        
+        if ($login === null || $password === null) {
+            $m = M::create("❌ Неизвестны твои логин и пароль от АВЕРС");
+            $m->setKeyboard(new SuggestEnterAversCredentialsKeyboard());
+            $this->reply($m);
+            return;
         }
         
-        $filename = GenericImagen::generateTable(
-            $table,
-            'Оценки',
-            [0, 0, 0, 0, 0],
-            5
+        $data = getStudentGrades(
+            $login,
+            $password,
+            577,
+            $this
+        );
+        
+        if (!$data['ok']) {
+            $this->edit($wait, M::create('❌ '.$data['data']));
+            return;
+        }
+        
+        $filename = GradesImagen::generateTable(
+            $data['data'],
+            ['Дисциплина', 'Оценки', 'Средний балл'],
+            'Оценки', // TODO: добавить семестр
+            [35, 40, 0],
+            0
         );
         
         $m = M::create(getDoneText(true));

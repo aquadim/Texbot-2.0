@@ -14,7 +14,7 @@ class Controller {
     protected IEvent $e;
 
     // Драйвер, который сейчас задействован
-    protected IDriver $d;
+    public IDriver $d;
 
     // Пользователь, вызвавший событие
     protected User $u;

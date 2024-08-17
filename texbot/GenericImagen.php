@@ -13,37 +13,39 @@ class GenericImagen {
         "body_bg_odd" => [210, 210, 200],
         "body_fg" => [40, 40, 40],
         "body_frame" => [25, 25, 25]
-        
-        ,'debug'=>[255,0,0]
     ];
     
     protected static int $t_body_line_height = 18;
     protected static int $t_title_line_height = 32;
     
-    protected static int $t_body_line_spacing = 8;
-    protected static int $t_title_line_spacing = 8;
+    protected static int $t_body_line_spacing = 16;
+    protected static int $t_title_line_spacing = 16;
     
     protected static float $t_body_fontsize = 18.0;
     protected static float $t_title_fontsize = 32.0;
     
     protected static string $t_font_filename = root_dir.'/resources/OpenSans-Regular.ttf';
     
-    protected static int $t_padding = 8;
+    protected static int $t_padding = 16;
     #endregion
     
     // Принимает данные, возвращает путь к сохранённому изображению
     // $data - данные в табличной форме
+    // $legend - названия колонок
     // $title - подпись таблицы
     // $body_line_constraints - максимум символов в колонке таблицы
     // $title_line_constraint - максимум символов в названии таблицы
     public static function generateTable
     (
         array $data,
+        array $legend,
         string $title,
         array $body_line_constraints,
         int $title_line_constraint
     ) : string
     {
+        array_unshift($data, $legend);
+        
         $width = count($data[0]);
 		$height = count($data);
 
@@ -81,14 +83,14 @@ class GenericImagen {
                 // 2. Вычисление и сохранение размеров текста в яйчейке
                 list($cell_width, $cell_height) = self::getTextSize(
                     $cell_lines,
-                    self::$t_body_line_height,
-                    self::$t_body_line_spacing,
-                    self::$t_font_filename,
-                    self::$t_body_fontsize
+                    static::$t_body_line_height,
+                    static::$t_body_line_spacing,
+                    static::$t_font_filename,
+                    static::$t_body_fontsize
                 );
 
-                $cell_width += self::$t_padding * 2;
-                $cell_height += self::$t_padding * 2;
+                $cell_width += static::$t_padding * 2;
+                $cell_height += static::$t_padding * 2;
 
                 // 3. Определение макс. размера ширины колонки и высоты
                 // текущей строки
@@ -108,16 +110,16 @@ class GenericImagen {
         );
         list($title_width, $title_height) = self::getTextSize(
             $title_lines,
-            self::$t_title_line_height,
-            self::$t_title_line_spacing,
-            self::$t_font_filename,
-            self::$t_title_fontsize
+            static::$t_title_line_height,
+            static::$t_title_line_spacing,
+            static::$t_font_filename,
+            static::$t_title_fontsize
         );
 
         // Вычисление размеров таблицы. Пытаемся сделать квадрат
         $table_width = max($body_width, $title_width);
         // Заголовок+пробел+тело
-		$table_height = $body_height + $title_height + self::$t_padding;
+		$table_height = $body_height + $title_height + static::$t_padding;
 
         if ($table_width > $table_height) {
             $table_height = $table_width;
@@ -132,12 +134,12 @@ class GenericImagen {
         // У ширины +1 закомментировано потому что вот вам, получайте 
         // перфекционисты!!
         $im = imagecreatetruecolor(
-            $table_width + self::$t_padding * 2 /* + 1 */,
-            $table_height + self::$t_padding * 2 + 1
+            $table_width + static::$t_padding * 2 /* + 1 */,
+            $table_height + static::$t_padding * 2 + 1
         );
 
         $gdcolors = [];
-		foreach (self::$t_colors as $color_name => $color) {
+		foreach (static::$t_colors as $color_name => $color) {
 			$gdcolors[$color_name] = imagecolorallocate(
                 $im,
                 $color[0],
@@ -151,68 +153,68 @@ class GenericImagen {
             $im,
             0,
             0,
-            $table_width + self::$t_padding * 2,
-            $table_height + self::$t_padding * 2,
+            $table_width + static::$t_padding * 2,
+            $table_height + static::$t_padding * 2,
             $gdcolors['background']
         );
 
         // Отрисовка названия
         // Пробел + высота одной строки
-		$line_y = self::$t_padding + self::$t_title_line_height;
+		$line_y = static::$t_padding + static::$t_title_line_height;
 		foreach ($title_lines as $line) {
             imagettftext(
                 $im,
-                self::$t_title_fontsize,
+                static::$t_title_fontsize,
                 0,
-                self::$t_padding,
+                static::$t_padding,
                 $line_y,
                 $gdcolors['title_color'],
-                self::$t_font_filename,
+                static::$t_font_filename,
                 $line
             );
             
             // Добавление ещё строки
-			$line_y += self::$t_title_line_height + self::$t_title_line_spacing;
+			$line_y += static::$t_title_line_height + static::$t_title_line_spacing;
 		}
 
         // Отрисовка тела таблицы
-        $line_y = $line_y + self::$t_padding - self::$t_title_line_height - self::$t_title_line_spacing;
+        $line_y = $line_y + static::$t_padding - static::$t_title_line_height - static::$t_title_line_spacing;
         $body_y = $line_y;
         
         for ($y = 0; $y < $height; $y++) {
             // Задний фон строки таблицы
-            self::drawBodyLine(
+            static::drawBodyLine(
                 $im,
                 $gdcolors,
                 $data[$y],
                 ($y % 2 == 0),
 
-                self::$t_padding, // x1
+                static::$t_padding, // x1
                 $line_y, // y1
 
-                self::$t_padding + $body_width, // x2
+                static::$t_padding + $body_width, // x2
                 $line_y + $row_sizes[$y] // y2
 			);
 
             // Содержимое яйчеек
-            $celltext_x = self::$t_padding * 2;
+            $celltext_x = static::$t_padding * 2;
             for ($x = 0; $x < $width; $x++) {
-                $celltext_y = $line_y + self::$t_padding;
+                $celltext_y = $line_y + static::$t_padding;
 
                 foreach ($cells[$y][$x] as $cell_line) {
                     imagettftext(
                         $im,
-                        self::$t_body_fontsize,
+                        static::$t_body_fontsize,
                         0,
                         $celltext_x,
-                        $celltext_y + self::$t_body_line_height,
+                        $celltext_y + static::$t_body_line_height,
                         $gdcolors['body_fg'],
-                        self::$t_font_filename,
+                        static::$t_font_filename,
                         $cell_line
                     );
                     $celltext_y +=
-                        self::$t_body_line_height +
-                        self::$t_body_line_spacing;
+                        static::$t_body_line_height +
+                        static::$t_body_line_spacing;
                 }
                 $celltext_x += $col_sizes[$x];
             }
@@ -223,10 +225,10 @@ class GenericImagen {
         imagerectangle(
             $im,
 
-            self::$t_padding,
+            static::$t_padding,
             $body_y,
 
-            self::$t_padding + $body_width,
+            static::$t_padding + $body_width,
             $body_y + $body_height,
 
             $gdcolors['body_frame']

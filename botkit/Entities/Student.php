@@ -59,4 +59,8 @@ class Student {
     public function setAversPassword(string $password) : void {
         $this->avers_password = sha1($password);
     }
+    
+    public function getAversPassword() : ?string {
+        return $this->avers_password;
+    }
 }
