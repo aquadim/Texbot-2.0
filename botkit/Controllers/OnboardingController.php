@@ -10,6 +10,7 @@ use BotKit\Database;
 
 use BotKit\Entities\Student;
 use BotKit\Entities\CollegeGroup;
+use BotKit\Entities\Period;
 
 use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\TeacherOrStudentKeyboard;
@@ -78,10 +79,16 @@ class OnboardingController extends Controller {
         $student->setGroup($group);
         
         // Спросить нужно ли ввести оценки
-        $m = M::create("Хочешь ввести логин и пароль от электронного дневника чтобы просматривать оценки?");
+        $m = M::create(
+        "Хочешь ввести логин и пароль от электронного дневника чтобы ".
+        "просматривать оценки?\n".
+        
+        "⚠️ Внимание: по умолчанию оценки будут показываться за ".
+        "I семестр. Настроить отображаемый семестр можно в меню ".
+        "профиля -- /hub");
         $m->setKeyboard(new YesNoKeyboard(
             CallbackType::EnterJournalLogin,
-            [],
+            ['first_time'=>true],
             CallbackType::SkipCredentials,
             []
         ));
@@ -89,9 +96,39 @@ class OnboardingController extends Controller {
     }
     
     // Показ сообщения с просьбой ввести логин
-    public function enterJournalLogin() {
+    // $first_time - в первый раз?
+    public function enterJournalLogin($first_time) {
+        $prefix = '';
+        if ($first_time) {
+            // Студент вводит логин и пароль в первый раз
+            // Подбираем ему первый семестр для отображения оценок
+            // При изменении логина и пароля сбрасывать эту настройку
+            // не стоит
+            $em = Database::getEm();
+            $student = $em->getRepository(Student::class)->findOneBy(
+                ['user' => $this->u->getEntity()]
+            );
+            $student_group = $student->getGroup();
+            
+            $dql = 
+            'SELECT period FROM '.Period::class.' period '.
+            'WHERE period.group=:studentGroup AND period.ord_number=1';
+            $q = $em->createQuery($dql);
+            $q->setParameters(['studentGroup'=>$student_group]);
+            $r = $q->getResult();
+            
+            if (count($r) === 0) {
+                // !!!
+                $prefix = 
+                '⚠️ Внимание: не удалось установить первый семестр для '.
+                'группы '.$student_group->getHumanName()."\n";
+            } else {
+                // Всё норм
+                $student->setPreferencedPeriod($r[0]);
+            }
+        }
         $this->u->setState(State::EnterJournalLogin);
-        $m = M::create("Введи логин");
+        $m = M::create($prefix."Введи логин");
         $m->setKeyboard(new ClearKeyboard());
         $this->editAssociatedMessage($m);
     }

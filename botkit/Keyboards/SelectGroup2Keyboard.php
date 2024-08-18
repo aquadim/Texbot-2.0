@@ -9,7 +9,6 @@ use BotKit\Models\KeyboardButtons\CallbackButton;
 
 use BotKit\Enums\ButtonColor;
 use BotKit\Enums\CallbackType;
-use BotKit\Enums\GroupSelectionGoal;
 
 class SelectGroup2Keyboard extends InlineKeyboard {
     
@@ -24,7 +23,7 @@ class SelectGroup2Keyboard extends InlineKeyboard {
 		foreach ($paginator as $group) {
 			
             $button = new CallbackButton(
-				$num . ' ' . $group->getSpec()->getName(),
+				$group->getHumanName(),
 				$goal,
 				['group_id' => $group->getId()],
                 ButtonColor::Primary

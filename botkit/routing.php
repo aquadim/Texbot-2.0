@@ -14,6 +14,8 @@ Bot::onCallback(CallbackType::SelectedGroupNum, 'UtilController@advanceGroupSele
 Bot::onCallback(CallbackType::SkipCredentials, 'OnboardingController@skipCredentials');
 Bot::onCallback(CallbackType::EnterJournalLogin, 'OnboardingController@enterJournalLogin');
 Bot::onCallback(CallbackType::ChangeGroup, 'HubController@changeStudentGroupStart');
+Bot::onCallback(CallbackType::ChangePeriod, 'HubController@changeStudentPeriod');
+Bot::onCallback(CallbackType::SelectedPeriod, 'HubController@studentPeriodSelected');
 
 // Обратные вызовы: выбрана группа
 Bot::onCallback(CallbackType::SelectedGroupForStudentRegister, 'OnboardingController@studentSelectedGroup');

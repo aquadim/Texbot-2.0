@@ -11,6 +11,7 @@ use BotKit\Database;
 
 use BotKit\Entities\Student;
 use BotKit\Entities\CollegeGroup;
+use BotKit\Entities\Period;
 
 use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
@@ -19,6 +20,7 @@ use BotKit\Keyboards\SelectGroup1Keyboard;
 use BotKit\Keyboards\HubKeyboard;
 use BotKit\Keyboards\YesNoKeyboard;
 use BotKit\Keyboards\ProfileKeyboard;
+use BotKit\Keyboards\SelectPeriodKeyboard;
 
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
@@ -51,15 +53,30 @@ class HubController extends Controller {
         if ($login === null || $password === null) {
             $m = M::create("❌ Неизвестны твои логин и пароль от АВЕРС");
             $m->setKeyboard(new SuggestEnterAversCredentialsKeyboard());
-            $this->reply($m);
+            $this->edit($wait, $m);
+            return;
+        }
+        
+        $em = Database::getEm();
+        
+        // Получение предпочитаемого семестра студента
+        $student = $em->getRepository(Student::class)->findOneBy(
+            ['user' => $this->u->getEntity()]
+        );
+        $period = $student->getPreferencedPeriod();
+        
+        if ($period === null) {
+            $this->edit(
+                $wait,
+                M::create("❌ Не выбран предпочитаемый семестр. Выбери семестр из меню профиля")
+            );
             return;
         }
         
         $data = getStudentGrades(
             $login,
             $password,
-            577,
-            $this
+            $period->getAversId()
         );
         
         if (!$data['ok']) {
@@ -70,7 +87,7 @@ class HubController extends Controller {
         $filename = GradesImagen::generateTable(
             $data['data'],
             ['Дисциплина', 'Оценки', 'Средний балл'],
-            'Оценки', // TODO: добавить семестр
+            'Оценки, '.$period->getHumanName(),
             [35, 40, 0],
             0
         );
@@ -126,15 +143,27 @@ class HubController extends Controller {
         
         // Логин и пароль АВЕРС
         $avers_login = $student->getAversLogin();
-        $avers_set = $avers_login !== null;
-        if (!$avers_set) {
+        $avers_login_set = $avers_login !== null;
+        if (!$avers_login_set) {
             $profile_text .= "⚠ Вы не указывали логин и пароль от электронного журнала\n";
         } else {
             $profile_text .= "🆔 Логин, используемый для сбора ваших оценок - ".$avers_login."\n";
         }
+        
+        // Отображаемый семестр
+        $avers_period = $student->getPreferencedPeriod();
+        $avers_period_set = $avers_period !== null;
+        if (!$avers_period_set) {
+            // По идее такого происходить не должно, ведь семестр
+            // устанавливается при регистрации, см. OnboardingController
+            // но на всякий случай вставим
+            $profile_text .= "⚠ Неизвестен предпочитаемый семестр сбора оценок\n";
+        } else {
+            $profile_text .= "🗓 Семестр сбора оценок: ".$avers_period->getHumanName()."\n";
+        }
          
         $m = M::create($profile_text);
-        $m->setKeyboard(new ProfileKeyboard($avers_set));
+        $m->setKeyboard(new ProfileKeyboard($avers_login_set));
         $this->reply($m);
     }
     
@@ -159,7 +188,8 @@ class HubController extends Controller {
         // Обновление группы
         $em = Database::getEm();
         $student = $em->getRepository(Student::class)->findOneBy(
-            ['user' => $this->u->getEntity()]);
+            ['user' => $this->u->getEntity()]
+        );
         $group = $em->find(CollegeGroup::class, $group_id);
         $student->setGroup($group);
         
@@ -168,5 +198,34 @@ class HubController extends Controller {
         $m = M::create("Группа обновлена, наслаждайся!");
         $m->setKeyboard(new HubKeyboard());
         $this->reply($m);
+    }
+    
+    // Смена семестра 1
+    public function changeStudentPeriod() {
+        // Выбрать все семестры этой группы
+        $em = Database::getEm();
+        $student = $em->getRepository(Student::class)->findOneBy(
+            ['user' => $this->u->getEntity()]
+        );
+        $group = $student->getGroup();
+        $periods = $em->getRepository(Period::class)->findBy(
+            ['group' => $group]
+        );
+        
+        $m = M::create("Выбери новый семестр");
+        $m->setKeyboard(new SelectPeriodKeyboard($periods));
+        $this->editAssociatedMessage($m);
+    }
+    
+    // Смена семестра 2
+    public function studentPeriodSelected($period_id) {
+        $em = Database::getEm();
+        $student = $em->getRepository(Student::class)->findOneBy(
+            ['user' => $this->u->getEntity()]
+        );
+        $period = $em->find(Period::class, $period_id);
+        $student->setPreferencedPeriod($period);
+        
+        $this->editAssociatedMessage(M::create("✅ Предпочтения сохранены"));
     }
 }

@@ -39,8 +39,17 @@ class ProfileKeyboard extends InlineKeyboard {
             new CallbackButton(
                 $avers_text,
                 CallbackType::EnterJournalLogin,
-                [],
+                ["first_time"=>false],
                 $avers_color
+            )
+        ];
+        
+        $this->layout[] = [
+            new CallbackButton(
+                "Выбрать другой семестр",
+                CallbackType::ChangePeriod,
+                [],
+                ButtonColor::Primary
             )
         ];
     }

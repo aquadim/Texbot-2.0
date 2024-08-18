@@ -22,6 +22,12 @@ enum CallbackType: int {
     // Смена группы
     case ChangeGroup = 7;
     
+    // Смена семестра
+    case ChangePeriod = 9;
+    
+    // Выбран новый семестр
+    case SelectedPeriod = 10;
+    
     #region После выбора групп
     case SelectedGroupForStudentRegister = 3;
     case SelectedGroupForStudentEdit = 8;

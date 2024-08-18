@@ -143,8 +143,7 @@ if (!function_exists(__NAMESPACE__ . '\getStudentGrades')) {
 function getStudentGrades(
     string $login,
     string $password,
-    int $period_id,
-    $controller
+    int $period_id
 ) : array {
     
     $api_base = 'http://avers.vpmt.ru:8081/region_pou/region.cgi/';

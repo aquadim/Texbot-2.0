@@ -39,4 +39,44 @@ class Period {
         $this->avers_id = $avers_id;
     }
     #endregion 
+    
+    public function getId() {
+        return $this->id;
+    }
+    
+    public function getAversId() : int {
+        return $this->avers_id;
+    }
+    
+    public function getHumanName() : string {
+        switch ($this->ord_number) {
+            case 1:
+                $greek_num = 'I';
+                break;
+            case 2:
+                $greek_num = 'II';
+                break;
+            case 3:
+                $greek_num = 'III';
+                break;
+            case 4:
+                $greek_num = 'IV';
+                break;
+            case 5:
+                $greek_num = 'V';
+                break;
+            case 6:
+                $greek_num = 'VI';
+                break;
+            case 7:
+                $greek_num = 'VII';
+                break;
+            case 8:
+                $greek_num = 'VIII';
+                break;
+            default:
+                $greek_num = $this->ord_number;
+        }
+        return $greek_num.' семестр';
+    }
 }

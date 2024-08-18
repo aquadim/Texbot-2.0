@@ -31,9 +31,10 @@ class Student {
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $avers_password = null;
 
-    // Отчислен ли студент
-    #[ORM\Column(type: 'boolean')]
-    private bool $expelled = false;
+    // Предпочитаемый семестр для получения оценок
+    #[ORM\ManyToOne(Period::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Period $preferenced_period = null;
 
     public function setUser(User $user) : void {
         $this->user = $user;
@@ -62,5 +63,13 @@ class Student {
     
     public function getAversPassword() : ?string {
         return $this->avers_password;
+    }
+    
+    public function setPreferencedPeriod(Period $period) : void {
+        $this->preferenced_period = $period;
+    }
+    
+    public function getPreferencedPeriod() : ?Period {
+        return $this->preferenced_period;
     }
 }

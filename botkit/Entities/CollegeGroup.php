@@ -21,6 +21,10 @@ class CollegeGroup {
     // Номер курса группы
     #[ORM\Column(type: 'integer')]
     private int $course_num;
+    
+    // Год поступления
+    #[ORM\Column(type: 'integer')]
+    private int $enrolled_at;
 
     public function getId() {
         return $this->id;
@@ -40,5 +44,17 @@ class CollegeGroup {
 
     public function setCourseNum(int $num) {
         $this->course_num = $num;
+    }
+    
+    public function getEnrolledAt() : int {
+        return $this->enrolled_at;
+    }
+
+    public function setEnrolledAt(int $enrolled_at) {
+        $this->enrolled_at = $enrolled_at;
+    }
+    
+    public function getHumanName() : string {
+        return $this->course_num.' '.$this->spec->getName();
     }
 }
