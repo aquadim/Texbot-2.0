@@ -86,5 +86,52 @@ foreach (file($argv[2]) as $line) {
     $em->persist($period);
 }
 
+// Преподаватели
+$teachers = array(
+  array('patron' => 'Германовна', 'name' => 'Ольга', 'surname' => 'Александрова'),
+  array('patron' => 'Владимировна', 'name' => 'Елена', 'surname' => 'Антоненко'),
+  array('patron' => 'Александрович', 'name' => 'Иван', 'surname' => 'Бегунов'),
+  array('patron' => 'Сергеевич', 'name' => 'Александр', 'surname' => 'Бондин'),
+  array('patron' => 'Леонидович', 'name' => 'Андрей', 'surname' => 'Воронин'),
+  array('patron' => 'Валерьевна', 'name' => 'Екатерина', 'surname' => 'Галимова'),
+  array('patron' => 'Альферовна', 'name' => 'Алмазия', 'surname' => 'Гарифова'),
+  array('patron' => 'Валентиновна', 'name' => 'Любовь', 'surname' => 'Дербышева'),
+  array('patron' => 'Николаевна', 'name' => 'Юлия', 'surname' => 'Eремеева'),
+  array('patron' => 'Сергеевна', 'name' => 'Наталья', 'surname' => 'Игнатьева'),
+  array('patron' => 'Анатольевна', 'name' => 'Светлана', 'surname' => 'Ильина'),
+  array('patron' => 'Загидович', 'name' => 'Равиль', 'surname' => 'Исаков'),
+  array('patron' => 'Юрьевна', 'name' => 'Марина', 'surname' => 'Коралихина'),
+  array('patron' => 'Евгеньевна', 'name' => 'Елена', 'surname' => 'Логинова'),
+  array('patron' => 'Сергеевич', 'name' => 'Александр', 'surname' => 'Маскин'),
+  array('patron' => 'Георгиевна', 'name' => 'Людмила', 'surname' => 'Матвеева'),
+  array('patron' => 'Евгеньевич', 'name' => 'Михаил', 'surname' => 'Медведев'),
+  array('patron' => 'Альбертовна', 'name' => 'Альбина', 'surname' => 'Медянцева'),
+  array('patron' => 'Рифовна', 'name' => 'Римма', 'surname' => 'Мингалеева'),
+  array('patron' => 'Александровна', 'name' => 'Елена', 'surname' => 'Немтинова'),
+  array('patron' => 'Нургаянович', 'name' => 'Нурислам', 'surname' => 'Нигаматзянов'),
+  array('patron' => 'Аркадьевна', 'name' => 'Елена', 'surname' => 'Новикова'),
+  array('patron' => 'Леонидовна', 'name' => 'Ольга', 'surname' => 'Овчинникова'),
+  array('patron' => 'Александрович', 'name' => 'Сергей', 'surname' => 'Пивоваров'),
+  array('patron' => 'Анатольевна', 'name' => 'Елена', 'surname' => 'Пономарева'),
+  array('patron' => 'Геннадьевна', 'name' => 'Кристина', 'surname' => 'Поткина'),
+  array('patron' => 'Валерьевна', 'name' => 'Алевтина', 'surname' => 'Пупкова'),
+  array('patron' => 'Анатольевич', 'name' => 'Александр', 'surname' => 'Пушкарев'),
+  array('patron' => 'Станиславовна', 'name' => 'Вера', 'surname' => 'Солоницына'),
+  array('patron' => 'Викторовна', 'name' => 'Жанна', 'surname' => 'Усова'),
+  array('patron' => 'Гаптельнуровна', 'name' => 'Гюзелия', 'surname' => 'Хайрутдинова'),
+  array('patron' => 'Равилевич', 'name' => 'Марсиль', 'surname' => 'Хуснутдинов'),
+  array('patron' => 'Ильсурович', 'name' => 'Рамиль', 'surname' => 'Шамсумухаметов'),
+  array('patron' => 'Викторовна', 'name' => 'Елена', 'surname' => 'Шафикова'),
+  array('patron' => 'Александрович', 'name' => 'Сергей', 'surname' => 'Шешегов'),
+  array('patron' => 'Владимировна', 'name' => 'Наталья', 'surname' => 'Шешегова')
+);
+foreach ($teachers as $e) {
+    $e_obj = new Entities\Employee();
+    $e_obj->setSurname($e['surname']);
+    $e_obj->setName($e['name']);
+    $e_obj->setPatronymic($e['patron']);
+    $em->persist($e_obj);
+}
+
 $em->flush();
 echo "Старт базы данных проведён успешно!\n";

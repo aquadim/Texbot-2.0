@@ -6,6 +6,25 @@ namespace Texbot;
 use BotKit\Models\Messages\TextMessage as M;
 use DOMDocument;
 
+// Оповещает в телеграмме о чём тто
+if (!function_exists(__NAMESPACE__ . '\adminNotify')) {
+function adminNotify($text) : void {
+    if ($_ENV['notify'] == 'false') {
+        return;
+    }
+    $params = [
+        'chat_id' => $_ENV['notify_chat'],
+        'text' => $text,
+        'parse_mode' => 'MarkdownV2'
+    ];
+    file_get_contents(
+        'https://api.telegram.org/bot'.
+        $_ENV['notify_token'].
+        '/sendMessage?'.
+        http_build_query($params)
+    );
+}}
+
 // Возвращает объект сообщения в котором просьба подождать
 // или секрет
 if (!function_exists(__NAMESPACE__ . '\getWaitMessage')) {

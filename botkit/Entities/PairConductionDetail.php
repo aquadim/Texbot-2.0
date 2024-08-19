@@ -30,25 +30,29 @@ class PairConductionDetail {
 
     // В каком месте
     #[ORM\ManyToOne(Place::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private Place $place;
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Place $place = null;
 
     #region getters
     public function getEmployee() : Employee {
         return $this->employee;
     }
 
-    public function getPlace() : Place {
+    public function getPlace() : ?Place {
         return $this->place;
     }
     #enregion
     
     #region setters
+    public function setPair(Pair $pair) : void {
+        $this->pair = $pair;
+    }
+    
     public function setEmployee(Employee $employee) : void {
         $this->employee = $employee;
     }
 
-    public function setPlace(Place $place) : void {
+    public function setPlace(?Place $place) : void {
         $this->place = $place;
     }
     #enregion
