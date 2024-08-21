@@ -4,9 +4,72 @@
 namespace Texbot;
 
 use BotKit\Models\Messages\TextMessage as M;
+use BotKit\Models\Attachments\PhotoAttachment;
+use BotKit\Entities\ImageCache;
+use BotKit\Entities\Platform;
+use BotKit\Database;
+use BotKit\Enums\ImageCacheType;
 use DOMDocument;
 
-// Оповещает в телеграмме о чём тто
+// Ищет запись кэша изображения
+// $cache_type - тип кэша из перечисления
+// $platform - платформа кэша
+// $search - строка поиска
+// Возвращает вложение для сообщения
+if (!function_exists(__NAMESPACE__ . '\getCache')) {
+function getCache(
+    ImageCacheType $cache_type,
+    Platform $platform,
+    string $search) : ?PhotoAttachment {
+        
+    $em = Database::getEm();
+    $dql = 
+    'SELECT c FROM '.ImageCache::class.' c '.
+    'WHERE c.cache_type=:cacheType AND c.platform=:cachePlatform '.
+    'AND c.search=:cacheSearch '.
+    'AND c.created_at BETWEEN :cacheTime AND :now';
+    $q = $em->createQuery($dql);
+    $q->setParameters([
+        'cacheType' => $cache_type,
+        'cachePlatform' => $platform,
+        'cacheSearch' => $search,
+        'now' => new \DateTimeImmutable(),
+        'cacheTime' => new \DateTimeImmutable('-20 minutes')// кэш становится нерелевантным через 20 минут
+    ]);
+    $result = $q->getResult();
+    
+    if (count($result) === 0) {
+        return null;
+    }
+    
+    return PhotoAttachment::fromUploaded($result[0]->getValue());
+}}
+
+// Создаёт запись кэша изображения
+// $cache_type - тип кэша из перечисления
+// $platform - платформа кэша
+// $search - строка поиска
+// $value - значение
+if (!function_exists(__NAMESPACE__ . '\createCache')) {
+function createCache(
+    ImageCacheType $cache_type,
+    Platform $platform,
+    string $search,
+    string $value) : void {
+        
+    $obj = new ImageCache();
+    $obj->setCacheType($cache_type);
+    $obj->setPlatform($platform);
+    $obj->setSearch($search);
+    $obj->setValue($value);
+    $obj->setCreatedAt(new \DateTimeImmutable());
+    
+    $em = Database::getEm();
+    $em->persist($obj);
+    $em->flush();
+}}
+
+// Оповещает в телеграмме о чём то
 if (!function_exists(__NAMESPACE__ . '\adminNotify')) {
 function adminNotify($text) : void {
     if ($_ENV['notify'] == 'false') {

@@ -48,6 +48,10 @@ class Period {
         return $this->avers_id;
     }
     
+    public function getOrdNumber() : int {
+        return $this->ord_number;
+    }
+    
     public function getHumanName() : string {
         switch ($this->ord_number) {
             case 1:

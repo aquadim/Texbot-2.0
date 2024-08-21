@@ -486,7 +486,7 @@ class VkComDriver implements IDriver {
                     break;
                 
                 case PhotoAttachmentType::FromUploaded:
-                    $attachment_strings[] = $photo->getValue();
+                    $attachment_strings[] = $photo->getId();
                     break;
                 
                 default:

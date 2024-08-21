@@ -9,3 +9,5 @@ require_once root_dir . '/vendor/autoload.php';
 // Сбор переменных окружения
 $dotenv = \Dotenv\Dotenv::createImmutable(root_dir);
 $dotenv->load();
+
+date_default_timezone_set('Europe/Kirov');

@@ -24,19 +24,20 @@ use BotKit\Keyboards\SelectPeriodKeyboard;
 
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
+use BotKit\Enums\ImageCacheType;
 
 use Texbot\GenericImagen;
 use Texbot\GradesImagen;
 use function Texbot\getWaitMessage;
 use function Texbot\getDoneText;
 use function Texbot\getStudentGrades;
+use function Texbot\createCache;
+use function Texbot\getCache;
 
 class HubController extends Controller {
     
     // Оценки
     public function grades() {
-        // TODO: поиск кэшированного
-        
         $wait = getWaitMessage();
         $this->reply($wait);
         
@@ -73,6 +74,20 @@ class HubController extends Controller {
             return;
         }
         
+        $cached = getCache(
+            ImageCacheType::Grades,
+            $this->u->getEntity()->getPlatform(),
+            $period->getOrdNumber().'-'.$this->u->getIdOnPlatform(),
+        );
+        
+        if ($cached !== null) {
+            // Кэш найден! Отправляем сообщение
+            $m = M::create(getDoneText(true));
+            $m->addPhoto($cached);
+            $this->edit($wait, $m);
+            return;
+        }
+        
         $data = getStudentGrades(
             $login,
             $password,
@@ -95,6 +110,13 @@ class HubController extends Controller {
         $m = M::create(getDoneText(true));
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->edit($wait, $m);
+        
+        createCache(
+            ImageCacheType::Grades,
+            $this->u->getEntity()->getPlatform(),
+            $period->getOrdNumber().'-'.$this->u->getIdOnPlatform(),
+            $m->getPhotos()[0]->getId()
+        );
     }
     
     // Расписание звонков

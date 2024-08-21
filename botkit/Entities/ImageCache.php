@@ -17,26 +17,43 @@ class ImageCache {
     // Тип изображения (оценки/расписание/...) см. BotKit\Enums\ImageCacheType
     #[ORM\Column(type: 'integer')]
     private int $cache_type;
+    
+    // Платформа на которую загружено изображение
+    #[ORM\ManyToOne(Platform::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private Platform $platform;
 
     // Ключ
-    #[ORM\Column(type: 'integer')]
-    private int $search;
+    #[ORM\Column(type: 'string', length: 128)]
+    private string $search;
 
     // Значение
     #[ORM\Column(type: 'string', length: 64)]
     private string $value;
+    
+    // Дата создания
+    #[ORM\Column(type: 'datetime_immutable')]
+    private \DateTimeImmutable $created_at;
     
     #region setters
     public function setCacheType(ImageCacheType $cache_type) {
         $this->cache_type = $cache_type->value;
     }
     
-    public function setSearch(int $search) {
+    public function setPlatform(Platform $platform) {
+        $this->platform = $platform;
+    }
+    
+    public function setSearch(string $search) {
         $this->search = $search;
     }
     
     public function setValue(string $value) {
         $this->value = $value;
+    }
+    
+    public function setCreatedAt(\DateTimeImmutable $datetime) {
+        $this->created_at = $datetime;
     }
     #endregion
 
