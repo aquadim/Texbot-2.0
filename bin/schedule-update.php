@@ -217,6 +217,17 @@ foreach($dates as $date) {
     
     // День этого расписания
     $schedule_day = (new \DateTimeImmutable())->setTimestamp($date);
+    
+    // Поиск существующих расписаний. Если они найдены, удаляем!
+    $existing = $em
+    ->getRepository(Entities\Schedule::class)
+    ->findBy([
+        'day' => $schedule_day
+    ]);
+    foreach ($existing as $s) {
+        $em->remove($s);
+    }
+    $em->flush();
 
 	// Дата актуальна. Парсим таблицу, связанную с этой датой
 	info("Выполняется парсинг таблицы для временной метки: ".date("Y-m-d", $date));
@@ -290,18 +301,6 @@ foreach($dates as $date) {
             }
             $group = $result[0];
             info("Сбор данных для группы ".$group->getHumanName());
-            
-            // Поиск существующего расписания. Если оно найдено, удаляем!
-            $existing = $em
-            ->getRepository(Entities\Schedule::class)
-            ->findOneBy([
-                'day' => $schedule_day,
-                'college_group' => $group
-            ]);
-            if ($existing !== null) {
-                $em->remove($existing);
-                $em->flush();
-            }
 
             // Создание записи расписания
             $schedule = new Entities\Schedule();
