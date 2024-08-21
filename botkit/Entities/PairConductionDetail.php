@@ -20,7 +20,7 @@ class PairConductionDetail {
 
     // Для какой пары
     #[ORM\ManyToOne(Pair::class, inversedBy: 'pair')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: "CASCADE")]
     private Pair $pair;
 
     // Какой преподаватель

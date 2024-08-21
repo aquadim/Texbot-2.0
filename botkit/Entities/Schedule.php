@@ -19,8 +19,8 @@ class Schedule {
     private CollegeGroup $college_group;
 
     // День расписания
-    #[ORM\Column(type: 'date')]
-    private \DateTime $day;
+    #[ORM\Column(type: 'date_immutable')]
+    private \DateTimeImmutable $day;
 
     #region getters
     public function getId() {
@@ -31,7 +31,7 @@ class Schedule {
         return $this->college_group;
     }
     
-    public function getDay() : \DateTime {
+    public function getDay() : \DateTimeImmutable {
         return $this->day;
     }
     #endregion
@@ -41,7 +41,7 @@ class Schedule {
         $this->college_group = $college_group;
     }
     
-    public function setDay(\DateTime $day) : void {
+    public function setDay(\DateTimeImmutable $day) : void {
         $this->day = $day;
     }
     #endregion

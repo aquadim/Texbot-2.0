@@ -133,5 +133,10 @@ foreach ($teachers as $e) {
     $em->persist($e_obj);
 }
 
+// fallback места пары
+$place_fallback = new Entities\Place();
+$place_fallback->setName('нет данных');
+$em->persist($place_fallback);
+
 $em->flush();
 echo "Старт базы данных проведён успешно!\n";

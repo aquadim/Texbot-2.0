@@ -17,12 +17,12 @@ class Pair {
 
     // Для какого расписания
     #[ORM\ManyToOne(Schedule::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: "CASCADE")]
     private Schedule $schedule;
 
     // Время проведения
-    #[ORM\Column(type: 'time', name: 'ptime')]
-    private \Datetime $time;
+    #[ORM\Column(type: 'datetime_immutable', name: 'ptime')]
+    private \DateTimeImmutable $time;
 
     // Название пары
     #[ORM\ManyToOne(PairName::class)]
@@ -42,7 +42,7 @@ class Pair {
         return $this->schedule;
     }
     
-    public function getTime() : \Datetime {
+    public function getTime() : \DateTimeImmutable {
         return $this->time;
     }
 
@@ -60,7 +60,7 @@ class Pair {
         $this->schedule = $schedule;
     }
     
-    public function setTime(\Datetime $time) : void {
+    public function setTime(\DateTimeImmutable $time) : void {
         $this->time = $time;
     }
 

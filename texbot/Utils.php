@@ -15,9 +15,9 @@ function adminNotify($text) : void {
     $params = [
         'chat_id' => $_ENV['notify_chat'],
         'text' => $text,
-        'parse_mode' => 'MarkdownV2'
+        'parse_mode' => 'HTML'
     ];
-    file_get_contents(
+    $r = file_get_contents(
         'https://api.telegram.org/bot'.
         $_ENV['notify_token'].
         '/sendMessage?'.

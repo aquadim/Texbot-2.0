@@ -4,7 +4,8 @@
 // https://stackoverflow.com/questions/63249647/how-to-read-table-cell-content-via-phpword-library
 // https://stackoverflow.com/questions/50994146/read-ms-word-document-with-php-word
 // Использование:
-// php schedule-update.php <файл расписания>
+/* php schedule-update.php <файл расписания> 
+ * <нужно ли делать проверку актуальности (1/0)> */
 
 require realpath(__DIR__ . '/../botkit/bootstrap.php');
 
@@ -186,6 +187,14 @@ foreach ($textruns as $text) {
 }
 
 info("===Парсинг таблиц===");
+
+// Парсить нерелевантные?
+if ($argv[2] === '1') {
+    $parse_irrelevant = true;
+} else {
+    $parse_irrelevant = false;
+}
+
 if (count($dates) != count($tables)) {
 	warning("Предупреждение: количество дат не совпадает с количеством таблиц");
 }
@@ -201,7 +210,8 @@ $dql_find_group =
 
 foreach($dates as $date) {
 	// Проверяем актуальность даты
-	if ($date > $date_relevancy) {
+	if ($date < $date_relevancy && $parse_irrelevant === false) {
+        warning(date("Y-m-d", $date).' пропускается - т.к. дата не актуальна');
 		continue;
 	}
     
@@ -269,18 +279,34 @@ foreach($dates as $date) {
             $result = $q->getResult();
 
             if (count($result) == 0) {
-                // В БД такой группы нет, ну и пусть -- пропускаем
+                // В БД такой группы нет
                 err("Неопознанная группа: ".$data[$y][$x]);
-                adminNotify("Неопознанная группа во время парсинга расписаний: ".$data[$y][$x]);
-				continue;
+                adminNotify(
+                "Неопознанная группа во время парсинга расписаний: ".
+                $data[$y][$x].
+                "\nДата расписания: ".date("Y-m-d", $date)
+                );
+				exit();
             }
             $group = $result[0];
             info("Сбор данных для группы ".$group->getHumanName());
+            
+            // Поиск существующего расписания. Если оно найдено, удаляем!
+            $existing = $em
+            ->getRepository(Entities\Schedule::class)
+            ->findOneBy([
+                'day' => $schedule_day,
+                'college_group' => $group
+            ]);
+            if ($existing !== null) {
+                $em->remove($existing);
+                $em->flush();
+            }
 
             // Создание записи расписания
             $schedule = new Entities\Schedule();
             $schedule->setCollegeGroup($group);
-            $schedule->setDay(\DateTime::createFromImmutable($schedule_day));
+            $schedule->setDay($schedule_day);
             $em->persist($schedule);
 
             // Парсинг пар группы по столбцу до конца таблицы
@@ -326,12 +352,13 @@ foreach($dates as $date) {
                     $pair_name_obj = new Entities\PairName();
                     $pair_name_obj->setName($pair_name);
                     $em->persist($pair_name_obj);
+                    $em->flush();
                 }
                 
                 // Создание записи пары
                 $pair = new Entities\Pair();
                 $pair->setSchedule($schedule);
-                $pair->setTime(\DateTime::createFromImmutable($pair_time));
+                $pair->setTime($pair_time);
                 $pair->setPairName($pair_name_obj);
                 $em->persist($pair);
                 
@@ -349,22 +376,26 @@ foreach($dates as $date) {
                         err("Преподаватель {$parts[0]} не найден!");
                         adminNotify(
                         "Преподаватель {$parts[0]} не найден, обновление расписания завершено немедленно\\.\n".
-                        "Примите меры *немедленно*");
+                        "Примите меры <b>немедленно</b>");
                         exit();
                     }
                     
                     if (count($parts) === 1) {
                         // Есть только фамилия
-                        $place = null;
+                        $place = $em
+                            ->getRepository(Entities\Place::class)
+                            ->findOneBy(['name' => 'нет данных']);
                     } else {
                         $place = $em
                             ->getRepository(Entities\Place::class)
                             ->findOneBy(['name' => $parts[1]]);
+                        
                         if ($place === null) {
                             // Места нет, создаём
                             $place = new Entities\Place();
                             $place->setName($parts[1]);
                             $em->persist($place);
+                            $em->flush();
                         }
                     }
                     
@@ -382,4 +413,5 @@ foreach($dates as $date) {
 	}
 	$counter++;
 }
+$em->flush();
 #endregion
