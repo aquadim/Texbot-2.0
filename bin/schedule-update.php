@@ -189,7 +189,7 @@ foreach ($textruns as $text) {
 info("===Парсинг таблиц===");
 
 // Парсить нерелевантные?
-if ($argv[2] === '1') {
+if ($argv[2] === '0') {
     $parse_irrelevant = true;
 } else {
     $parse_irrelevant = false;
@@ -381,9 +381,7 @@ foreach($dates as $date) {
                     
                     if (count($parts) === 1) {
                         // Есть только фамилия
-                        $place = $em
-                            ->getRepository(Entities\Place::class)
-                            ->findOneBy(['name' => 'нет данных']);
+                        $place = null;
                     } else {
                         $place = $em
                             ->getRepository(Entities\Place::class)

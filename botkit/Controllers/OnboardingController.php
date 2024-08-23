@@ -51,10 +51,13 @@ class OnboardingController extends Controller {
     // Выбран тип аккаунта
     public function selectedAccountType($answer) {
         if ($answer == "student") {
+            $u_obj = $this->u->getEntity();
+            
             // Создать объект студента
             $em = Database::getEm();
             $s = new Student();
-            $s->setUser($this->u->getEntity());
+            $s->setUser($u_obj);
+            $u_obj->setAccountType(1);
             $em->persist($s);
             
             // Отправить сообщение с выбором группы

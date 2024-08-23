@@ -28,6 +28,13 @@ class User {
     #[ORM\Column(type: 'integer')]
     private int $state;
 
+    // Тип аккаунта
+    // 0 - неопределено
+    // 1 - студент
+    // 2 - препод
+    #[ORM\Column(type: 'integer')]
+    private int $account_type = 0;
+
     #region getters
     // Возвращает ID пользователя в БД
     public function getId() : int {
@@ -47,6 +54,11 @@ class User {
     // Возвращает платформу
     public function getPlatform() : Platform {
         return $this->platform;
+    }
+    
+    // Возвращает тип аккаунта
+    public function getAccountType() : int {
+        return $this->account_type;
     }
     #endregion
 
@@ -70,12 +82,26 @@ class User {
     public function setStateByInt(int $new_state) : void {
         $this->state = $new_state;
     }
+
+    public function setAccountType(int $type) : void {
+        $this->account_type = $type;
+    }
     #endregion
 
     #region other
     // Возвращает true если состояние пользователя совпадает со $state
     public function inState(State $state) : bool {
         return $state->value == $this->state;
+    }
+
+    // Возвращает true если пользователь - студент
+    public function isStudent() : bool {
+        return $this->account_type == 1;
+    }
+
+    // Возвращает true если пользователь - препод
+    public function isTeacher() : bool {
+        return $this->account_type == 2;
     }
     #endregion
 }

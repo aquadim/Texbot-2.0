@@ -8,24 +8,23 @@ class ScheduleRepo extends EntityRepository {
 
     // Возвращает расписание для группы на определённую дату
     // $group - группа
-    // $asked_at - на какое время запрашивается
-    public function findForGroupAtDate(CollegeGroup $group, $asked_at) {
-        $day = date("Y-m-d", strtotime("today", $asked_at));
-        
-        $schedule = $this->createQueryBuilder('schedule')
-        ->andWhere('schedule.college_group = :group')
-        ->setParameter('group', $group)
-        ->andWhere('schedule.day = :day')
-        ->setParameter('day', $day)
-        ->getQuery()
-        ->execute();
+    // $date - на какое время запрашивается
+    public function findSchedule(CollegeGroup $group, $date) : ?Schedule {
+        $em = $this->getEntityManager();
 
-        if (count($schedule) == 0) {
-            // Не найдено расписание
+        $dql =
+        'SELECT s FROM '.Schedule::class.' s '.
+        'WHERE s.day=:day AND s.college_group=:group';
+        $q_schedule = $em->createQuery($dql);
+        $q_schedule->setParameters([
+            'day' => $date,
+            'group' => $group
+        ]);
+        $r_schedule = $q_schedule->getResult();
+
+        if (count($r_schedule) == 0) {
             return null;
         }
-
-        return $schedule[0];
+        return $r_schedule[0];
     }
-    
 }

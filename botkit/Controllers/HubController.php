@@ -21,6 +21,7 @@ use BotKit\Keyboards\HubKeyboard;
 use BotKit\Keyboards\YesNoKeyboard;
 use BotKit\Keyboards\ProfileKeyboard;
 use BotKit\Keyboards\SelectPeriodKeyboard;
+use BotKit\Keyboards\SelectDateKeyboard;
 
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
@@ -35,6 +36,29 @@ use function Texbot\createCache;
 use function Texbot\getCache;
 
 class HubController extends Controller {
+
+    // Показывает выбор даты расписания
+    // Если пользователь - студент, расписание создаётся для группы, иначе для
+    // преподавателя
+    public function schedule() {
+        $user_obj = $this->u->getEntity();
+        $em = Database::getEm();
+        
+        if ($user_obj->isStudent()) {
+            $m = M::create("📅 Выбери дату");
+            $m->setKeyboard(new SelectDateKeyboard(
+                CallbackType::SelectedDateForCurrentStudentRasp
+            ));
+            $this->reply($m);
+            return;
+        }
+
+        if ($user_obj->isTeacher()) {
+            return;
+        }
+
+        $this->replyText("❌ Сначала пройди регистрацию");
+    }
     
     // Оценки
     public function grades() {
@@ -219,7 +243,7 @@ class HubController extends Controller {
         $this->u->setState(State::Hub);
         $m = M::create("Группа обновлена, наслаждайся!");
         $m->setKeyboard(new HubKeyboard());
-        $this->reply($m);
+        $this->editAssociatedMessage($m);
     }
     
     // Смена семестра 1

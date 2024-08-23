@@ -32,6 +32,10 @@ enum CallbackType: int {
     case SelectedGroupForStudentRegister = 3;
     case SelectedGroupForStudentEdit = 8;
     #endregion
+
+    #region После выбора даты
+    case SelectedDateForCurrentStudentRasp = 11;
+    #endregion
     
     #region Пагинация
     // В списке групп

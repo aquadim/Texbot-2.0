@@ -191,7 +191,7 @@ function getWaitMessage() : M {
 }}
 
 // Возвращает текст готовности результата
-// 20% что будет с рекламой если отправляется студенту
+// 30% что будет с рекламой если отправляется студенту
 // $for_student - true, если сообщение будет отправлено студенту
 if (!function_exists(__NAMESPACE__ . '\getDoneText')) {
 function getDoneText($for_student) : string {
@@ -201,7 +201,7 @@ function getDoneText($for_student) : string {
         return $text;
     }
     
-    if (rand(0, 99) < 21) {
+    if (rand(0, 99) < 31) {
         $ads_messages = [
             'Посмотри как устроен Техбот - https://github.com/aquadim',
             'Новости от разработчика Техбота - https://t.me/aquadimcodes',
@@ -246,8 +246,15 @@ function getStudentGrades(
     curl_setopt($auth, CURLOPT_POST, 1);
     curl_setopt($auth, CURLOPT_POSTFIELDS, $auth_params);
     curl_setopt($auth, CURLOPT_ENCODING, 'windows-1251');
-    curl_setopt($auth, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($auth, CURLOPT_CONNECTTIMEOUT, 10);
     $response = curl_exec($auth);
+
+    if ($response === false) {
+        return [
+            'ok'=>false,
+            'data'=>'Не удаётся подключиться к АВЕРС, попробуй позже'
+        ];
+    }
     
     // Запрос на сбор оценок в XML файле
     $grades_params = http_build_query([

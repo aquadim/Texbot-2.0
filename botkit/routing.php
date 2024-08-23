@@ -21,10 +21,14 @@ Bot::onCallback(CallbackType::SelectedPeriod, 'HubController@studentPeriodSelect
 Bot::onCallback(CallbackType::SelectedGroupForStudentRegister, 'OnboardingController@studentSelectedGroup');
 Bot::onCallback(CallbackType::SelectedGroupForStudentEdit, 'HubController@changeStudentGroupEnd');
 
+// Обратные вызовы: выбрана дата
+Bot::onCallback(CallbackType::SelectedDateForCurrentStudentRasp, 'ScheduleController@currentStudentRasp');
+
 // Обратные вызовы: пагинация
 Bot::onCallback(CallbackType::GroupSelectionPagination, 'UtilController@groupSelectionPage');
 
 // Главное меню
+Bot::onText("Расписание", 'HubController@schedule', State::Hub);
 Bot::onText("Оценки", 'HubController@grades', State::Hub);
 Bot::onText("Звонки", 'HubController@bellsSchedule', State::Hub);
 Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
