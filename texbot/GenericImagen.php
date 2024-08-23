@@ -233,6 +233,17 @@ class GenericImagen {
 
             $gdcolors['body_frame']
         );
+
+        // Черта между легендой и содержимым
+        $sep_y = $body_y + $row_sizes[0];
+        imagedashedline(
+            $im,
+            static::$t_padding,
+            $sep_y,
+            static::$t_padding + $body_width,
+            $sep_y,
+            $gdcolors['body_frame']
+        );
         
         #endregion
 
