@@ -23,6 +23,7 @@ use function Texbot\createCache;
 use function Texbot\getCache;
 
 use IntlDateFormatter;
+use DateTime;
 
 class ScheduleController extends Controller {
 
@@ -83,14 +84,14 @@ class ScheduleController extends Controller {
             'Europe/Kirov',
             IntlDateFormatter::GREGORIAN
         );
-        $date_string = $fmt->format($date);
+        $date_string = $fmt->format(DateTime::createFromFormat('Y-m-d', $date));
 
         $filename = GenericImagen::generateTable(
             $matrix,
             ['Время', 'Дисциплина', 'Детали проведения'],
             'Расписание группы '.$group->getHumanName().' на '.$date_string,
-            [0, 40, 40],
-            40
+            [0, 20, 30],
+            25
         );
         
         $m = M::create(getDoneText(true));
