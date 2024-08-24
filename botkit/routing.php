@@ -30,6 +30,7 @@ Bot::onCallback(CallbackType::GroupSelectionPagination, 'UtilController@groupSel
 // Главное меню
 Bot::onText("Расписание", 'HubController@schedule', State::Hub);
 Bot::onText("Оценки", 'HubController@grades', State::Hub);
+Bot::onText("Что дальше?", 'HubController@nextPair', State::Hub);
 Bot::onText("Звонки", 'HubController@bellsSchedule', State::Hub);
 Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
 

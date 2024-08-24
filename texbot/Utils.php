@@ -11,6 +11,26 @@ use BotKit\Database;
 use BotKit\Enums\ImageCacheType;
 use DOMDocument;
 
+// Собирает данные о месте проведения пары
+// Преподаватель + место проведения
+if (!function_exists(__NAMESPACE__ . '\getConductionDetailsAsText')) {
+function getConductionDetailsAsText($details) : string {
+    $details_texts = [];
+
+    foreach ($details as $detail) {
+        $employee = $detail->getEmployee();
+        $place = $detail->getPlace();
+
+        if ($place === null) {
+            $details_texts[] = $employee->getSurname();
+        } else {
+            $details_texts[] = $employee->getSurname().' '.$place->getName();
+        }
+    }
+
+    return implode(' / ', $details_texts);
+}}
+
 // Ищет запись кэша изображения
 // $cache_type - тип кэша из перечисления
 // $platform - платформа кэша

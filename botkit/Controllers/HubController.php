@@ -12,6 +12,7 @@ use BotKit\Database;
 use BotKit\Entities\Student;
 use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Period;
+use BotKit\Entities\Pair;
 
 use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
@@ -34,8 +35,14 @@ use function Texbot\getDoneText;
 use function Texbot\getStudentGrades;
 use function Texbot\createCache;
 use function Texbot\getCache;
+use function Texbot\getConductionDetailsAsText;
 
 class HubController extends Controller {
+
+    // Отправляет сообщение "Ты не зарегистрирован"
+    private function errorNotRegistered() {
+        $this->replyText("❌ Сначала пройди регистрацию");
+    }
 
     // Показывает выбор даты расписания
     // Если пользователь - студент, расписание создаётся для группы, иначе для
@@ -45,6 +52,7 @@ class HubController extends Controller {
         $em = Database::getEm();
         
         if ($user_obj->isStudent()) {
+            // Выбор даты для студента
             $m = M::create("📅 Выбери дату");
             $m->setKeyboard(new SelectDateKeyboard(
                 CallbackType::SelectedDateForCurrentStudentRasp
@@ -54,21 +62,89 @@ class HubController extends Controller {
         }
 
         if ($user_obj->isTeacher()) {
+            // Выбор даты для преподавателя
             return;
         }
 
-        $this->replyText("❌ Сначала пройди регистрацию");
+        $this->errorNotRegistered();
+    }
+
+    // Следующая пара
+    public function nextPair() {
+        $user_obj = $this->u->getEntity();
+        $em = Database::getEm();
+        $now = new \DateTimeImmutable();
+
+        if ($user_obj->isStudent()) {
+
+            $student_obj = $em->getRepository(Student::class)->findOneBy(
+                ['user' => $user_obj]
+            );
+            
+            $dql =
+            'SELECT p FROM '.Pair::class.' p '.
+            'JOIN p.schedule s '.
+            'WHERE s.college_group=:studentGroup AND p.time > :currentDate '.
+            'ORDER BY p.time ASC';
+
+            $q = $em->createQuery($dql);
+            $q->setMaxResults(1);
+            $q->setParameters([
+                'currentDate' => $now,
+                'studentGroup' => $student_obj->getGroup()
+            ]);
+            $r = $q->getResult();
+
+            if (count($r) == 0) {
+                $this->replyText("❌ Не удалось найти следующую пару");
+            } else {
+                $pair = $r[0];
+
+                // Вычисление разницы между "сейчас" и временем следующей пары
+                $time_diff = $pair->getTime()->diff($now);                
+                $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
+                
+                $this->replyText(
+                "➡ Следующая пара: ".
+                $pair->getPairNameAsText().
+                "\n\n⌛ Начинается в ".$pair->getTime()->format('H:i').
+                " (через ".$time_diff_text.")".
+                "\n\nℹ️ Детали проведения: ".
+                getConductionDetailsAsText($pair->getConductionDetails())
+                );
+            }
+            return;
+        }
+        
+        if ($user_obj->isTeacher()) {
+            //
+            return;
+        }
+
+        $this->errorNotRegistered();
     }
     
     // Оценки
     public function grades() {
+        $user_obj = $this->u->getEntity();
+
+        if ($user_obj->isTeacher()) {
+            // Преподам оценки недоступны
+            return;
+        }
+
+        if (!$user_obj->isStudent()) {
+            // Не студент? Значит не зарегистрирован
+            $this->errorNotRegistered();
+        }
+        
         $wait = getWaitMessage();
         $this->reply($wait);
         
         // Поиск студента
         $em = Database::getEm();
         $student = $em->getRepository(Student::class)->findOneBy(
-            ['user' => $this->u->getEntity()]
+            ['user' => $user_obj]
         );
         
         // Проверка заполненности логина и пароля

@@ -21,6 +21,7 @@ use function Texbot\getWaitMessage;
 use function Texbot\getDoneText;
 use function Texbot\createCache;
 use function Texbot\getCache;
+use function Texbot\getConductionDetailsAsText;
 
 use IntlDateFormatter;
 use DateTime;
@@ -56,24 +57,10 @@ class ScheduleController extends Controller {
 
         $matrix = [];
         foreach ($p as $pair) {
-            $details = $pair->getConductionDetails();
-            $details_texts = [];
-
-            foreach ($details as $detail) {
-                $employee = $detail->getEmployee();
-                $place = $detail->getPlace();
-
-                if ($place === null) {
-                    $details_texts[] = $employee->getSurname();
-                } else {
-                    $details_texts[] = $employee->getSurname().' '.$place->getName();
-                }
-            }
-            
             $matrix[] = [
                 $pair->getTime()->format('H:i'),
                 $pair->getPairNameAsText(),
-                implode(' / ', $details_texts)
+                getConductionDetailsAsText($pair->getConductionDetails())
             ];
         }
 
