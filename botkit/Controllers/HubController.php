@@ -49,7 +49,6 @@ class HubController extends Controller {
     // преподавателя
     public function schedule() {
         $user_obj = $this->u->getEntity();
-        $em = Database::getEm();
         
         if ($user_obj->isStudent()) {
             // Выбор даты для студента
@@ -69,61 +68,6 @@ class HubController extends Controller {
         $this->errorNotRegistered();
     }
 
-    // Следующая пара
-    public function nextPair() {
-        $user_obj = $this->u->getEntity();
-        $em = Database::getEm();
-        $now = new \DateTimeImmutable();
-
-        if ($user_obj->isStudent()) {
-
-            $student_obj = $em->getRepository(Student::class)->findOneBy(
-                ['user' => $user_obj]
-            );
-            
-            $dql =
-            'SELECT p FROM '.Pair::class.' p '.
-            'JOIN p.schedule s '.
-            'WHERE s.college_group=:studentGroup AND p.time > :currentDate '.
-            'ORDER BY p.time ASC';
-
-            $q = $em->createQuery($dql);
-            $q->setMaxResults(1);
-            $q->setParameters([
-                'currentDate' => $now,
-                'studentGroup' => $student_obj->getGroup()
-            ]);
-            $r = $q->getResult();
-
-            if (count($r) == 0) {
-                $this->replyText("❌ Не удалось найти следующую пару");
-            } else {
-                $pair = $r[0];
-
-                // Вычисление разницы между "сейчас" и временем следующей пары
-                $time_diff = $pair->getTime()->diff($now);                
-                $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
-                
-                $this->replyText(
-                "➡ Следующая пара: ".
-                $pair->getPairNameAsText().
-                "\n\n⌛ Начинается в ".$pair->getTime()->format('H:i').
-                " (через ".$time_diff_text.")".
-                "\n\nℹ️ Детали проведения: ".
-                getConductionDetailsAsText($pair->getConductionDetails())
-                );
-            }
-            return;
-        }
-        
-        if ($user_obj->isTeacher()) {
-            //
-            return;
-        }
-
-        $this->errorNotRegistered();
-    }
-    
     // Оценки
     public function grades() {
         $user_obj = $this->u->getEntity();
@@ -217,6 +161,90 @@ class HubController extends Controller {
             $period->getOrdNumber().'-'.$this->u->getIdOnPlatform(),
             $m->getPhotos()[0]->getId()
         );
+    }
+
+    // Следующая пара
+    public function nextPair() {
+        $user_obj = $this->u->getEntity();
+        $em = Database::getEm();
+        $now = new \DateTimeImmutable();
+
+        if ($user_obj->isStudent()) {
+
+            $student_obj = $em->getRepository(Student::class)->findOneBy(
+                ['user' => $user_obj]
+            );
+            
+            $dql =
+            'SELECT p FROM '.Pair::class.' p '.
+            'JOIN p.schedule s '.
+            'WHERE s.college_group=:studentGroup AND p.time > :currentDate '.
+            'ORDER BY p.time ASC';
+
+            $q = $em->createQuery($dql);
+            $q->setMaxResults(1);
+            $q->setParameters([
+                'currentDate' => $now,
+                'studentGroup' => $student_obj->getGroup()
+            ]);
+            $r = $q->getResult();
+
+            if (count($r) == 0) {
+                $this->replyText("❌ Не удалось найти следующую пару");
+            } else {
+                $pair = $r[0];
+
+                // Вычисление разницы между "сейчас" и временем следующей пары
+                $time_diff = $pair->getTime()->diff($now);                
+                $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
+                
+                $this->replyText(
+                "➡ Следующая пара: ".
+                $pair->getPairNameAsText().
+                "\n\n⌛ Начинается в ".$pair->getTime()->format('H:i').
+                " (через ".$time_diff_text.")".
+                "\n\nℹ️ Детали проведения: ".
+                getConductionDetailsAsText($pair->getConductionDetails())
+                );
+            }
+            return;
+        }
+        
+        if ($user_obj->isTeacher()) {
+            //
+            return;
+        }
+
+        $this->errorNotRegistered();
+    }
+ 
+    // Расписание группы (1 шаг из 4)
+    // Показывает выбор группы для последующего показа расписания
+    // 1. Курс
+    // 2. Группа
+    // 3. Дата
+    // 4. profit (показ расписания)
+    public function scheduleForOtherGroup() {
+        $m = M::create("Выбери курс");
+        $m->setKeyboard(new SelectGroup1Keyboard(
+            CallbackType::SelectedGroupForOtherRasp
+        ));
+        $this->reply($m);
+    }
+
+    // Расписание группы (3 шаг из 4)
+    public function selectedGroupForOtherRasp($group_id) {
+        $em = Database::getEm();
+        $group = $em->find(CollegeGroup::class, (int)$group_id);
+        $m = M::create(
+            "📅 Выбери дату для просмотра расписания группы ".
+            $group->getHumanName()
+        );
+        $m->setKeyboard(new SelectDateKeyboard(
+            CallbackType::SelectedDateForGroupRasp,
+            ["group_id" => $group_id]
+        ));
+        $this->editAssociatedMessage($m);
     }
     
     // Расписание звонков

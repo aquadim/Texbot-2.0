@@ -77,7 +77,7 @@ class ScheduleController extends Controller {
             $matrix,
             ['Время', 'Дисциплина', 'Детали проведения'],
             'Расписание группы '.$group->getHumanName().' на '.$date_string,
-            [0, 20, 30],
+            [0, 40, 30],
             25
         );
         
@@ -87,7 +87,8 @@ class ScheduleController extends Controller {
     }
 
     // Показывает расписание текущего студента
-    public function currentStudentRasp($date) {
+    // $data - пустой массив
+    public function currentStudentRasp($date, $data) {
         $user_obj = $this->u->getEntity();
         $em = Database::getEm();
         
@@ -101,5 +102,15 @@ class ScheduleController extends Controller {
         }
 
         $this->replyText("❌ Ты не студент, либо не зарегистрировался");
+    }
+
+    // 4 шаг при показе расписания другой группы
+    // $date - дата расписания
+    // $data - ["group_id" - id группы на которую нужно показать расписание]
+    public function groupRasp($date, $data) {
+        $em = Database::getEm();
+        $group_id = $data['group_id'];
+        $group = $em->find(CollegeGroup::class, $group_id);
+        $this->sendRasp($group, $date);
     }
 }

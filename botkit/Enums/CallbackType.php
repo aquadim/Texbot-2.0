@@ -31,10 +31,12 @@ enum CallbackType: int {
     #region После выбора групп
     case SelectedGroupForStudentRegister = 3;
     case SelectedGroupForStudentEdit = 8;
+    case SelectedGroupForOtherRasp = 13;
     #endregion
 
     #region После выбора даты
     case SelectedDateForCurrentStudentRasp = 11;
+    case SelectedDateForGroupRasp = 12;
     #endregion
     
     #region Пагинация
