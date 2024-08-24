@@ -37,10 +37,17 @@ enum CallbackType: int {
     #region После выбора даты
     case SelectedDateForCurrentStudentRasp = 11;
     case SelectedDateForGroupRasp = 12;
+    case SelectedDateForTeacherRasp = 16;
+    #endregion
+
+    #region После выбора сотрудника
+    case SelectedEmployeeForRasp = 15;
     #endregion
     
     #region Пагинация
     // В списке групп
     case GroupSelectionPagination = 4;
+    // В списке сотрудников
+    case EmployeeSelectionPagination = 14;
     #endregion
 }

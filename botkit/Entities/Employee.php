@@ -26,6 +26,10 @@ class Employee {
     private ?string $patronymic = null;
 
     #region getters
+    public function getId() : ?int {
+        return $this->id;
+    }
+    
     public function getSurname() : string {
         return $this->surname;
     }

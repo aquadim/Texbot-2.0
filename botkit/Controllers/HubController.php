@@ -217,6 +217,8 @@ class HubController extends Controller {
 
         $this->errorNotRegistered();
     }
+
+    // Функция расписания преподавателя находится в UtilController
  
     // Расписание группы (1 шаг из 4)
     // Показывает выбор группы для последующего показа расписания
