@@ -253,7 +253,7 @@ class HubController extends Controller {
         $this->replyText($out_text);
     }
 
-    // Функция расписания преподавателя находится в UtilController
+    // Функция "Где преподаватель?" находится в UtilController
  
     // Расписание группы (1 шаг из 4)
     // Показывает выбор группы для последующего показа расписания

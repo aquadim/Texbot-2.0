@@ -51,6 +51,21 @@ class ScheduleController extends Controller {
             return;
         }
 
+        // Ищем кэш
+        $cached = getCache(
+            ImageCacheType::GroupSchedule,
+            $this->u->getEntity()->getPlatform(),
+            $group->getId().'-'.$date
+        );
+        
+        if ($cached !== null) {
+            // Кэш найден! Отправляем сообщение
+            $m = M::create(getDoneText());
+            $m->addPhoto($cached);
+            $this->editAssociatedMessage($m);
+            return;
+        }
+
         // Собираем пары в матрицу
         // Время | Название | Место проведения
         $p = $em->getRepository(Pair::class)->getPairsOfScheduleForGroup($s);
@@ -89,6 +104,13 @@ class ScheduleController extends Controller {
         $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->editAssociatedMessage($m);
+
+        createCache(
+            ImageCacheType::GroupSchedule,
+            $this->u->getEntity()->getPlatform(),
+            $group->getId().'-'.$date,
+            $m->getPhotos()[0]->getId()
+        );
     }
 
     // Собирает пары ПРЕПОДА, рисует расписание и отправляет пользователю
