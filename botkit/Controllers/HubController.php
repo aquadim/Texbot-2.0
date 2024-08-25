@@ -14,6 +14,7 @@ use BotKit\Entities\Teacher;
 use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Period;
 use BotKit\Entities\Pair;
+use BotKit\Entities\PairConductionDetail;
 
 use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
 use BotKit\Keyboards\SelectGroup1Keyboard;
@@ -47,9 +48,9 @@ class HubController extends Controller {
     // Если пользователь - студент, расписание создаётся для группы, иначе для
     // преподавателя
     public function schedule() {
-        $user_obj = $this->u->getEntity();
+        $user_ent = $this->u->getEntity();
         
-        if ($user_obj->isStudent()) {
+        if ($user_ent->isStudent()) {
             // Выбор даты для студента
             $m = M::create("📅 Выбери дату");
             $m->setKeyboard(new SelectDateKeyboard(
@@ -59,7 +60,7 @@ class HubController extends Controller {
             return;
         }
 
-        if ($user_obj->isTeacher()) {
+        if ($user_ent->isTeacher()) {
             // Выбор даты для преподавателя
             $m = M::create("📅 Выбери дату");
             $m->setKeyboard(new SelectDateKeyboard(
@@ -74,14 +75,14 @@ class HubController extends Controller {
 
     // Оценки
     public function grades() {
-        $user_obj = $this->u->getEntity();
+        $user_ent = $this->u->getEntity();
 
-        if ($user_obj->isTeacher()) {
+        if ($user_ent->isTeacher()) {
             // Преподам оценки недоступны
             return;
         }
 
-        if (!$user_obj->isStudent()) {
+        if (!$user_ent->isStudent()) {
             // Не студент? Значит не зарегистрирован
             $this->errorNotRegistered();
         }
@@ -92,7 +93,7 @@ class HubController extends Controller {
         // Поиск студента
         $em = Database::getEm();
         $student = $em->getRepository(Student::class)->findOneBy(
-            ['user' => $user_obj]
+            ['user' => $user_ent]
         );
         
         // Проверка заполненности логина и пароля
@@ -169,14 +170,21 @@ class HubController extends Controller {
 
     // Следующая пара
     public function nextPair() {
-        $user_obj = $this->u->getEntity();
+        $user_ent = $this->u->getEntity();
         $em = Database::getEm();
         $now = new \DateTimeImmutable();
 
-        if ($user_obj->isStudent()) {
+        if (!$user_ent->isStudent() && !$user_ent->isTeacher()) {
+            // Пользователь ни студент, ни препод
+            $this->errorNotRegistered();
+            return;
+        }
+        
+        // -- Определение DQL и параметров запроса --
+        if ($user_ent->isStudent()) {
 
-            $student_obj = $em->getRepository(Student::class)->findOneBy(
-                ['user' => $user_obj]
+            $student_ent = $em->getRepository(Student::class)->findOneBy(
+                ['user' => $user_ent]
             );
             
             $dql =
@@ -185,41 +193,64 @@ class HubController extends Controller {
             'WHERE s.college_group=:studentGroup AND p.time > :currentDate '.
             'ORDER BY p.time ASC';
 
-            $q = $em->createQuery($dql);
-            $q->setMaxResults(1);
-            $q->setParameters([
+            $query_params = [
                 'currentDate' => $now,
-                'studentGroup' => $student_obj->getGroup()
-            ]);
-            $r = $q->getResult();
+                'studentGroup' => $student_ent->getGroup()
+            ];
+            
+        } else if ($user_ent->isTeacher()) {
 
-            if (count($r) == 0) {
-                $this->replyText("❌ Не удалось найти следующую пару");
-            } else {
-                $pair = $r[0];
+            $teacher_ent = $em->getRepository(Teacher::class)->findOneBy(
+                ['user' => $user_ent]
+            );
 
-                // Вычисление разницы между "сейчас" и временем следующей пары
-                $time_diff = $pair->getTime()->diff($now);                
-                $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
-                
-                $this->replyText(
-                "➡ Дальше ".
-                $pair->getPairNameAsText().
-                "\n⌛ В ".$pair->getTime()->format('H:i').
-                " (через ".$time_diff_text.")".
-                "\nℹ️ Детали проведения: ".
-                getConductionDetailsAsText($pair->getConductionDetails())
-                );
-            }
+            $dql =
+            'SELECT pcd FROM '.PairConductionDetail::class.' pcd '.
+            'JOIN pcd.pair p '.
+            'WHERE pcd.employee=:employee AND p.time > :currentDate '.
+            'ORDER BY p.time ASC';
+
+            $query_params = [
+                'currentDate' => $now,
+                'employee' => $teacher_ent->getEmployee()
+            ];
+        }
+
+        $q = $em->createQuery($dql);
+        $q->setMaxResults(1);
+        $q->setParameters($query_params);
+        $r = $q->getResult();
+
+        if (count($r) == 0) {
+            $this->replyText("❌ Не удалось найти следующую пару");
             return;
+        }
+
+        // -- Получение пары из результата запроса --
+        if ($user_ent->isStudent()) {
+            $pair = $r[0];
+        } else {
+            $pair = $r[0]->getPair();
+        }
+
+        // -- Вычисление разницы между "сейчас" и временем следующей пары --
+        $time_diff = $pair->getTime()->diff($now);                
+        $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
+
+        // -- Вывод --
+        $out_text =
+        "➡ Дальше ".$pair->getPairNameAsText().
+        "\n⌛ В ".$pair->getTime()->format('H:i')." (через ".$time_diff_text.")".
+        "\nℹ️ Детали проведения: ".
+        getConductionDetailsAsText($pair->getConductionDetails());
+
+        if ($user_ent->isTeacher()) {
+            $schedule = $pair->getSchedule();
+            $group = $schedule->getCollegeGroup();
+            $out_text .= "\n👥 Группа: ".$group->getHumanName();
         }
         
-        if ($user_obj->isTeacher()) {
-            //
-            return;
-        }
-
-        $this->errorNotRegistered();
+        $this->replyText($out_text);
     }
 
     // Функция расписания преподавателя находится в UtilController
@@ -283,12 +314,12 @@ class HubController extends Controller {
     
     // Показ профиля
     public function showProfile() {
-        $user_obj = $this->u->getEntity();
+        $user_ent = $this->u->getEntity();
         $em = Database::getEm();
 
-        if ($user_obj->isStudent()) {
+        if ($user_ent->isStudent()) {
             $student = $em->getRepository(Student::class)->findOneBy(
-                ['user' => $user_obj]
+                ['user' => $user_ent]
             );
         
             // Группа студента
@@ -326,9 +357,9 @@ class HubController extends Controller {
             // Клавиатура
             $keyboard = new StudentProfileKeyboard($avers_login_set);
 
-        } else if ($user_obj->isTeacher()) {
+        } else if ($user_ent->isTeacher()) {
             $teacher = $em->getRepository(Teacher::class)->findOneBy(
-                ['user' => $user_obj]
+                ['user' => $user_ent]
             );
             $employee = $teacher->getEmployee();
 
