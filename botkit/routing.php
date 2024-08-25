@@ -47,6 +47,14 @@ Bot::onText("Расписание группы", 'HubController@scheduleForOther
 Bot::onText("Звонки", 'HubController@bellsSchedule', State::Hub);
 Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
 
+// Команды
+Bot::onCommand("/hub", 'HubController@hub');
+Bot::onCommand("/rasp", 'HubController@schedule');
+Bot::onCommand("/grades", 'HubController@grades');
+Bot::onCommand("/next", 'HubController@nextPair');
+Bot::onCommand("/bells", 'HubController@bellsSchedule');
+Bot::onCommand("/profile", 'HubController@showProfile');
+
 // АВЕРС
 Bot::whenUserInState(State::EnterJournalLogin, 'OnboardingController@loginEnteredAskPassword');
 Bot::whenUserInState(State::EnterJournalPassword, 'OnboardingController@passwordEnteredShowHub');

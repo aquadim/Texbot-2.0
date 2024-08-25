@@ -19,7 +19,7 @@ class SuggestEnterAversCredentialsKeyboard extends InlineKeyboard {
                 new CallbackButton(
                     "Ввести данные АВЕРС",
                     CallbackType::EnterJournalLogin,
-                    [],
+                    ['first_time' => false],
                     ButtonColor::Positive
                 )
             ]

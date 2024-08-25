@@ -243,7 +243,7 @@ function getStudentGrades(
     int $period_id
 ) : array {
     
-    $api_base = 'http://avers.vpmt.ru:8081/region_pou/region.cgi/';
+    $api_base = 'https://avers.vpmt.ru:8081/region_pou/region.cgi/';
     
     // Создаём разделяемый обработчик для того чтобы делиться куками
     $sh = curl_share_init();

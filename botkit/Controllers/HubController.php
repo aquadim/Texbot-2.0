@@ -19,6 +19,7 @@ use BotKit\Entities\PairConductionDetail;
 use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
 use BotKit\Keyboards\SelectGroup1Keyboard;
 use BotKit\Keyboards\StudentHubKeyboard;
+use BotKit\Keyboards\TeacherHubKeyboard;
 use BotKit\Keyboards\StudentProfileKeyboard;
 use BotKit\Keyboards\TeacherProfileKeyboard;
 use BotKit\Keyboards\SelectPeriodKeyboard;
@@ -377,6 +378,23 @@ class HubController extends Controller {
         }
          
         $m = M::create($profile_text);
+        $m->setKeyboard($keyboard);
+        $this->reply($m);
+    }
+
+    // Переносит пользователя в хаб, обновляет клавиатуру
+    public function hub() {
+        $user_ent = $this->u->getEntity();
+        if ($user_ent->isStudent()) {
+            $keyboard = new StudentHubKeyboard();
+        } else if ($user_ent->isTeacher()) {
+            $keyboard = new TeacherHubKeyboard();
+        } else {
+            $this->errorNotRegistered();
+            return;
+        }
+
+        $m = M::create("🪄 Вжух, теперь ты в главном меню");
         $m->setKeyboard($keyboard);
         $this->reply($m);
     }
