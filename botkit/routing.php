@@ -16,11 +16,13 @@ Bot::onCallback(CallbackType::EnterJournalLogin, 'OnboardingController@enterJour
 Bot::onCallback(CallbackType::ChangeGroup, 'HubController@changeStudentGroupStart');
 Bot::onCallback(CallbackType::ChangePeriod, 'HubController@changeStudentPeriod');
 Bot::onCallback(CallbackType::SelectedPeriod, 'HubController@studentPeriodSelected');
+Bot::onCallback(CallbackType::ChangeAccountType, 'UtilController@changeAccountType');
 
 // Обратные вызовы: выбрана группа
 Bot::onCallback(CallbackType::SelectedGroupForStudentRegister, 'OnboardingController@studentSelectedGroup');
 Bot::onCallback(CallbackType::SelectedGroupForStudentEdit, 'HubController@changeStudentGroupEnd');
 Bot::onCallback(CallbackType::SelectedGroupForOtherRasp, 'HubController@selectedGroupForOtherRasp');
+Bot::onCallback(CallbackType::SelectedGroupForNewAccountType, 'UtilController@newAccountTypeStudent');
 
 // Обратные вызовы: выбрана дата
 Bot::onCallback(CallbackType::SelectedDateForCurrentStudentRasp, 'ScheduleController@currentStudentRasp');
@@ -33,6 +35,7 @@ Bot::onCallback(CallbackType::EmployeeSelectionPagination, 'UtilController@teach
 
 // Обратные вызовы: выбран преподаватель
 Bot::onCallback(CallbackType::SelectedEmployeeForRasp, 'ScheduleController@showDateForEmployeeRasp');
+Bot::onCallback(CallbackType::SelectedEmployeeForNewAccountType, 'UtilController@newAccountTypeTeacher');
 
 // Главное меню
 Bot::onText("Расписание", 'HubController@schedule', State::Hub);

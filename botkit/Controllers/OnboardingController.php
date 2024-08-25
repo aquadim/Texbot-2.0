@@ -15,7 +15,8 @@ use BotKit\Entities\Period;
 use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\TeacherOrStudentKeyboard;
 use BotKit\Keyboards\SelectGroup1Keyboard;
-use BotKit\Keyboards\HubKeyboard;
+use BotKit\Keyboards\StudentHubKeyboard;
+use BotKit\Keyboards\TeacherHubKeyboard;
 use BotKit\Keyboards\YesNoKeyboard;
 
 use BotKit\Enums\State;
@@ -27,7 +28,7 @@ class OnboardingController extends Controller {
         $this->u->setState(State::Hub);
         
         $m = M::create("Ответы сохранены! Добро пожаловать");
-        $m->setKeyboard(new HubKeyboard());
+        $m->setKeyboard(new StudentHubKeyboard());
         $this->reply($m);
     }
     

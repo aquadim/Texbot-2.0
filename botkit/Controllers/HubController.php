@@ -10,17 +10,16 @@ use BotKit\Models\Attachments\PhotoAttachment;
 use BotKit\Database;
 
 use BotKit\Entities\Student;
+use BotKit\Entities\Teacher;
 use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Period;
 use BotKit\Entities\Pair;
 
-use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
-use BotKit\Keyboards\TeacherOrStudentKeyboard;
 use BotKit\Keyboards\SelectGroup1Keyboard;
-use BotKit\Keyboards\HubKeyboard;
-use BotKit\Keyboards\YesNoKeyboard;
-use BotKit\Keyboards\ProfileKeyboard;
+use BotKit\Keyboards\StudentHubKeyboard;
+use BotKit\Keyboards\StudentProfileKeyboard;
+use BotKit\Keyboards\TeacherProfileKeyboard;
 use BotKit\Keyboards\SelectPeriodKeyboard;
 use BotKit\Keyboards\SelectDateKeyboard;
 
@@ -279,43 +278,70 @@ class HubController extends Controller {
     
     // Показ профиля
     public function showProfile() {
+        $user_obj = $this->u->getEntity();
         $em = Database::getEm();
-        $student = $em->getRepository(Student::class)->findOneBy(
-            ['user' => $this->u->getEntity()]
-        );
+
+        if ($user_obj->isStudent()) {
+            $student = $em->getRepository(Student::class)->findOneBy(
+                ['user' => $user_obj]
+            );
         
-        // Группа студента
-        $group = $student->getGroup();
-        $profile_text = 
-        '👥 Твоя группа: '.
-        $group->getCourseNum().
-        ' '.
-        $group->getSpec()->getName().
-        "\n";
+            // Группа студента
+            $group = $student->getGroup();
+
+            $profile_text = 
+            '👥 Твоя группа: '.$group->getCourseNum().' '.
+            $group->getSpec()->getName()."\n";
         
-        // Логин и пароль АВЕРС
-        $avers_login = $student->getAversLogin();
-        $avers_login_set = $avers_login !== null;
-        if (!$avers_login_set) {
-            $profile_text .= "⚠ Вы не указывали логин и пароль от электронного журнала\n";
+            // Логин и пароль АВЕРС
+            $avers_login = $student->getAversLogin();
+            $avers_login_set = $avers_login !== null;
+            if (!$avers_login_set) {
+                $profile_text .=
+                "⚠ Вы не указывали логин и пароль от электронного журнала\n";
+            } else {
+                $profile_text .=
+                "🆔 Логин, используемый для сбора ваших оценок - ".
+                $avers_login."\n";
+            }
+        
+            // Отображаемый семестр
+            $avers_period = $student->getPreferencedPeriod();
+            $avers_period_set = $avers_period !== null;
+            if (!$avers_period_set) {
+                // Если при регистрации пользователь пропустил шаг ввода
+                // данных АВЕРС, то и предпочитаемого семестра не будет
+                $profile_text .=
+                "⚠ Неизвестен предпочитаемый семестр сбора оценок\n";
+            } else {
+                $profile_text .=
+                "🗓 Семестр сбора оценок: ".$avers_period->getHumanName()."\n";
+            }
+
+            // Клавиатура
+            $keyboard = new StudentProfileKeyboard($avers_login_set);
+
+        } else if ($user_obj->isTeacher()) {
+            $teacher = $em->getRepository(Teacher::class)->findOneBy(
+                ['user' => $user_obj]
+            );
+            $employee = $teacher->getEmployee();
+
+            // Сотрудник
+            $profile_text =
+            '👥 Сотрудник, связанный с тобой - '.
+            $employee->getNameWithInitials();
+
+            // Клавиатура
+            $keyboard = new TeacherProfileKeyboard();
+
         } else {
-            $profile_text .= "🆔 Логин, используемый для сбора ваших оценок - ".$avers_login."\n";
-        }
-        
-        // Отображаемый семестр
-        $avers_period = $student->getPreferencedPeriod();
-        $avers_period_set = $avers_period !== null;
-        if (!$avers_period_set) {
-            // По идее такого происходить не должно, ведь семестр
-            // устанавливается при регистрации, см. OnboardingController
-            // но на всякий случай вставим
-            $profile_text .= "⚠ Неизвестен предпочитаемый семестр сбора оценок\n";
-        } else {
-            $profile_text .= "🗓 Семестр сбора оценок: ".$avers_period->getHumanName()."\n";
+            $this->errorNotRegistered();
+            return;
         }
          
         $m = M::create($profile_text);
-        $m->setKeyboard(new ProfileKeyboard($avers_login_set));
+        $m->setKeyboard($keyboard);
         $this->reply($m);
     }
     
@@ -348,7 +374,7 @@ class HubController extends Controller {
         // Переход в главное меню
         $this->u->setState(State::Hub);
         $m = M::create("Группа обновлена, наслаждайся!");
-        $m->setKeyboard(new HubKeyboard());
+        $m->setKeyboard(new StudentHubKeyboard());
         $this->editAssociatedMessage($m);
     }
     

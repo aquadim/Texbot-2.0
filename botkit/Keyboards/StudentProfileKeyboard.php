@@ -1,5 +1,5 @@
 <?php
-// Клавиатура профиля
+// Клавиатура профиля студента
 
 namespace BotKit\Keyboards;
 
@@ -9,7 +9,7 @@ use BotKit\Models\KeyboardButtons\CallbackButton;
 use BotKit\Enums\ButtonColor;
 use BotKit\Enums\CallbackType;
 
-class ProfileKeyboard extends InlineKeyboard {
+class StudentProfileKeyboard extends InlineKeyboard {
     
     protected bool $cacheable = true;
     protected bool $one_time = false;
@@ -50,6 +50,15 @@ class ProfileKeyboard extends InlineKeyboard {
                 CallbackType::ChangePeriod,
                 [],
                 ButtonColor::Primary
+            )
+        ];
+        
+        $this->layout[] = [
+            new CallbackButton(
+                "Я - преподаватель",
+                CallbackType::ChangeAccountType,
+                ['type' => 2],
+                ButtonColor::Secondary
             )
         ];
     }

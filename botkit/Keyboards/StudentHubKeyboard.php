@@ -6,7 +6,7 @@ use BotKit\Enums\ButtonColor;
 use BotKit\Models\Keyboards\TextKeyboard;
 use BotKit\Models\KeyboardButtons\TextKeyboardButton;
 
-class HubKeyboard extends TextKeyboard {
+class StudentHubKeyboard extends TextKeyboard {
 
     protected bool $cacheable = true;
     protected bool $one_time = false;

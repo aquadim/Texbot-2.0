@@ -27,11 +27,15 @@ enum CallbackType: int {
     
     // Выбран новый семестр
     case SelectedPeriod = 10;
+
+    // Смена типа аккаунта
+    case ChangeAccountType = 17;
     
     #region После выбора групп
     case SelectedGroupForStudentRegister = 3;
     case SelectedGroupForStudentEdit = 8;
     case SelectedGroupForOtherRasp = 13;
+    case SelectedGroupForNewAccountType = 19;
     #endregion
 
     #region После выбора даты
@@ -42,6 +46,7 @@ enum CallbackType: int {
 
     #region После выбора сотрудника
     case SelectedEmployeeForRasp = 15;
+    case SelectedEmployeeForNewAccountType = 18;
     #endregion
     
     #region Пагинация
