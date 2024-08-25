@@ -211,15 +211,10 @@ function getWaitMessage() : M {
 }}
 
 // Возвращает текст готовности результата
-// 30% что будет с рекламой если отправляется студенту
-// $for_student - true, если сообщение будет отправлено студенту
+// 30% что будет с рекламой
 if (!function_exists(__NAMESPACE__ . '\getDoneText')) {
-function getDoneText($for_student) : string {
+function getDoneText() : string {
     $text = 'Готово';
-    
-    if (!$for_student) {
-        return $text;
-    }
     
     if (rand(0, 99) < 31) {
         $ads_messages = [

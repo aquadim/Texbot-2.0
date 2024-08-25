@@ -126,7 +126,7 @@ class HubController extends Controller {
         
         if ($cached !== null) {
             // Кэш найден! Отправляем сообщение
-            $m = M::create(getDoneText(true));
+            $m = M::create(getDoneText());
             $m->addPhoto($cached);
             $this->edit($wait, $m);
             return;
@@ -151,7 +151,7 @@ class HubController extends Controller {
             0
         );
         
-        $m = M::create(getDoneText(true));
+        $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->edit($wait, $m);
         

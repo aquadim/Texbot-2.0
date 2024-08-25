@@ -19,7 +19,7 @@ class PairConductionDetail {
     private int|null $id = null;
 
     // Для какой пары
-    #[ORM\ManyToOne(Pair::class, inversedBy: 'pair')]
+    #[ORM\ManyToOne(Pair::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: "CASCADE")]
     private Pair $pair;
 
@@ -40,6 +40,10 @@ class PairConductionDetail {
 
     public function getPlace() : ?Place {
         return $this->place;
+    }
+
+    public function getPair() : Pair {
+        return $this->pair;
     }
     #enregion
     

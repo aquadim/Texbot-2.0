@@ -12,6 +12,9 @@ use BotKit\Entities\Schedule;
 use BotKit\Entities\Student;
 use BotKit\Entities\Pair;
 use BotKit\Entities\CollegeGroup;
+use BotKit\Entities\Employee;
+
+use BotKit\Keyboards\SelectDateKeyboard;
 
 use BotKit\Enums\CallbackType;
 use BotKit\Enums\ImageCacheType;
@@ -82,7 +85,7 @@ class ScheduleController extends Controller {
             25
         );
         
-        $m = M::create(getDoneText(true));
+        $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->editAssociatedMessage($m);
     }
@@ -96,31 +99,32 @@ class ScheduleController extends Controller {
         
         // Ищем расписание
         $em = Database::getEm();
-        $s = $em->getRepository(Schedule::class)->findSchedule($group, $date);
+        $pairs = $em->getRepository(Pair::class)->getPairsOfTeacher(
+            $employee, $date
+        );
 
-        if ($s === null) {
+        if (count($pairs) == 0) {
             $this->editAssociatedMessage(M::create(
-            "❌ Расписание группы ".
-            $group->getHumanName().
-            " на запрошенную дату не найдено"));
+            "❌ Для преподавателя ".
+            $employee->getNameWithInitials().
+            " на запрошенную дату не найдено пар"));
             return;
         }
 
         // Собираем пары в матрицу
-        // Время | Название | Место проведения
-        $p = $em->getRepository(Pair::class)->getPairsOfScheduleForGroup($s);
-        if (count($p) == 0) {
-            $this->editAssociatedMessage(M::create(
-            "Видимо, пар у группы на этот день нет"));
-            return;
-        }
-
+        // Время | Название | Группа | Место проведения
         $matrix = [];
-        foreach ($p as $pair) {
+        foreach ($pairs as $pair_info) {
+            $pair = $pair_info->getPair();
+            $group = $pair->getSchedule()->getCollegeGroup();
+            $place = $pair_info->getPlace();
+            $place_text = $place ? $place->getName() : 'нет данных';
+
             $matrix[] = [
                 $pair->getTime()->format('H:i'),
-                $pair->getPairNameAsText(),
-                getConductionDetailsAsText($pair->getConductionDetails())
+                $pair->getPairName()->getName(),
+                $group->getHumanName(),
+                $place_text
             ];
         }
 
@@ -135,13 +139,14 @@ class ScheduleController extends Controller {
 
         $filename = GenericImagen::generateTable(
             $matrix,
-            ['Время', 'Дисциплина', 'Детали проведения'],
-            'Расписание группы '.$group->getHumanName().' на '.$date_string,
-            [0, 40, 30],
-            25
+            ['Время', 'Дисциплина', 'Группа', 'Место проведения'],
+            'Расписание преподавателя '.$employee->getNameWithInitials().
+            ' на '.$date_string,
+            [0, 40, 0, 30],
+            30
         );
         
-        $m = M::create(getDoneText(true));
+        $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->editAssociatedMessage($m);
     }
