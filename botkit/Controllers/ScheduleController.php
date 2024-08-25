@@ -34,7 +34,20 @@ class ScheduleController extends Controller {
 
     // Собирает пары ГРУППЫ, рисует расписание и отправляет пользователю
     private function sendRasp(CollegeGroup $group, $date) {
-        // TODO: cache
+        // Ищем кэш
+        $cached = getCache(
+            ImageCacheType::GroupSchedule,
+            $this->u->getEntity()->getPlatform(),
+            $group->getId().'-'.$date
+        );
+        
+        if ($cached !== null) {
+            // Кэш найден! Отправляем сообщение
+            $m = M::create(getDoneText());
+            $m->addPhoto($cached);
+            $this->editAssociatedMessage($m);
+            return;
+        }
 
         // Просим подождать
         $this->editAssociatedMessage(getWaitMessage());
@@ -48,21 +61,6 @@ class ScheduleController extends Controller {
             "❌ Расписание группы ".
             $group->getHumanName().
             " на запрошенную дату не найдено"));
-            return;
-        }
-
-        // Ищем кэш
-        $cached = getCache(
-            ImageCacheType::GroupSchedule,
-            $this->u->getEntity()->getPlatform(),
-            $group->getId().'-'.$date
-        );
-        
-        if ($cached !== null) {
-            // Кэш найден! Отправляем сообщение
-            $m = M::create(getDoneText());
-            $m->addPhoto($cached);
-            $this->editAssociatedMessage($m);
             return;
         }
 
@@ -115,8 +113,21 @@ class ScheduleController extends Controller {
 
     // Собирает пары ПРЕПОДА, рисует расписание и отправляет пользователю
     private function sendTeacherRasp(Employee $employee, $date) {
-        // TODO: cache
-
+        // Ищем кэш
+        $cached = getCache(
+            ImageCacheType::TeacherSchedule,
+            $this->u->getEntity()->getPlatform(),
+            $employee->getId().'-'.$date
+        );
+        
+        if ($cached !== null) {
+            // Кэш найден! Отправляем сообщение
+            $m = M::create(getDoneText());
+            $m->addPhoto($cached);
+            $this->editAssociatedMessage($m);
+            return;
+        }
+        
         // Просим подождать
         $this->editAssociatedMessage(getWaitMessage());
         
@@ -172,6 +183,13 @@ class ScheduleController extends Controller {
         $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $this->editAssociatedMessage($m);
+
+        createCache(
+            ImageCacheType::TeacherSchedule,
+            $this->u->getEntity()->getPlatform(),
+            $employee->getId().'-'.$date,
+            $m->getPhotos()[0]->getId()
+        );
     }
 
     // Показывает расписание текущего студента
