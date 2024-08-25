@@ -26,6 +26,7 @@ Bot::onCallback(CallbackType::SelectedGroupForNewAccountType, 'UtilController@ne
 
 // Обратные вызовы: выбрана дата
 Bot::onCallback(CallbackType::SelectedDateForCurrentStudentRasp, 'ScheduleController@currentStudentRasp');
+Bot::onCallback(CallbackType::SelectedDateForCurrentTeacherRasp, 'ScheduleController@currentTeacherRasp');
 Bot::onCallback(CallbackType::SelectedDateForGroupRasp, 'ScheduleController@groupRasp');
 Bot::onCallback(CallbackType::SelectedDateForTeacherRasp, 'ScheduleController@teacherRasp');
 

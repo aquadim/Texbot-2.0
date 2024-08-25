@@ -61,6 +61,11 @@ class HubController extends Controller {
 
         if ($user_obj->isTeacher()) {
             // Выбор даты для преподавателя
+            $m = M::create("📅 Выбери дату");
+            $m->setKeyboard(new SelectDateKeyboard(
+                CallbackType::SelectedDateForCurrentTeacherRasp
+            ));
+            $this->reply($m);
             return;
         }
 

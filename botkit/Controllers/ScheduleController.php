@@ -13,6 +13,7 @@ use BotKit\Entities\Student;
 use BotKit\Entities\Pair;
 use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Employee;
+use BotKit\Entities\Teacher;
 
 use BotKit\Keyboards\SelectDateKeyboard;
 
@@ -154,19 +155,40 @@ class ScheduleController extends Controller {
     // Показывает расписание текущего студента
     // $data - пустой массив
     public function currentStudentRasp($date, $data) {
-        $user_obj = $this->u->getEntity();
-        $em = Database::getEm();
+        $user_ent = $this->u->getEntity();
         
-        if ($user_obj->isStudent()) {
+        if ($user_ent->isStudent()) {
             // У текущего студента получаем его группу
+            $em = Database::getEm();
             $student_obj = $em->getRepository(Student::class)->findOneBy(
-                ['user' => $this->u->getEntity()]
+                ['user' => $user_ent]
             );
+
             $this->sendRasp($student_obj->getGroup(), $date);
             return;
         }
 
         $this->replyText("❌ Ты не студент, либо не зарегистрировался");
+    }
+    
+    // Показывает расписание текущего препода
+    // $data - пустой массив
+    public function currentTeacherRasp($date, $data) {
+        $user_ent = $this->u->getEntity();
+        
+        if ($user_ent->isTeacher()) {
+            // У текущего препода получаем его сотрудника
+            $em = Database::getEm();
+            $teacher_ent = $em->getRepository(Teacher::class)->findOneBy(
+                ['user' => $user_ent]
+            );
+            $employee_ent = $teacher_ent->getEmployee();
+            
+            $this->sendTeacherRasp($employee_ent, $date);
+            return;
+        }
+
+        $this->replyText("❌ Ты не преподаватель, либо не зарегистрировался");
     }
 
     // 4 шаг при показе расписания определённой группы
