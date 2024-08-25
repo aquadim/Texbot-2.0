@@ -199,11 +199,11 @@ class HubController extends Controller {
                 $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
                 
                 $this->replyText(
-                "➡ Следующая пара: ".
+                "➡ Дальше ".
                 $pair->getPairNameAsText().
-                "\n\n⌛ Начинается в ".$pair->getTime()->format('H:i').
+                "\n⌛ В ".$pair->getTime()->format('H:i').
                 " (через ".$time_diff_text.")".
-                "\n\nℹ️ Детали проведения: ".
+                "\nℹ️ Детали проведения: ".
                 getConductionDetailsAsText($pair->getConductionDetails())
                 );
             }
