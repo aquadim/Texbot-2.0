@@ -20,6 +20,10 @@ class Place {
     private string $name;
 
     #region getters
+    public function getId() {
+        return $this->id;
+    }
+    
     public function getName() : string {
         return $this->name;
     }

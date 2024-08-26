@@ -1,5 +1,5 @@
 <?php
-// Драйвер бота для vk.com
+// Драйвер бота для telegram.org
 
 namespace BotKit\Drivers;
 
@@ -31,10 +31,10 @@ use BotKit\Models\KeyboardButtons\TextKeyboardButton;
 use BotKit\Models\KeyboardButtons\UrlKeyboardButton;
 use BotKit\Models\KeyboardButtons\CallbackButton;
 
-class VkComDriver implements IDriver {
+class TelegramOrgDriver implements IDriver {
 
     // Домен
-    private static string $domain = "vk.com";
+    private static string $domain = "telegram.org";
     
     // API версия
     private string $api_version = "5.199";
@@ -44,9 +44,10 @@ class VkComDriver implements IDriver {
 
     // JSON данные полученного POST запроса
     private array $post_body;
-    
-    // URL загрузки изображений
-    protected string $uploadurl_photo;
+
+    // Данные текущего пользователя из POST запроса
+    // https://core.telegram.org/bots/api#user
+    protected array $current_user;
     
     protected IEvent $current_event;
     
@@ -69,10 +70,9 @@ class VkComDriver implements IDriver {
 
     #region IDriver
     public function forThis() : bool {
-        $data = json_decode(
-            file_get_contents('php://input'),
-            true
-        );
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        file_put_contents(__DIR__ . '/message.txt', print_r($data, true));
         
         if ($data === null) {
             return false;
@@ -80,14 +80,8 @@ class VkComDriver implements IDriver {
         
         $this->post_body = $data;
         
-        // В запросе от ВКонтакте должны быть эти поля:
-        $required = ['type', 'group_id'];
-        foreach ($required as $field) {
-            if (!isset($this->post_body[$field])) {
-                return false;
-            }
-        }
-        return true;
+        // В запросе от telegram должен быть update_id
+        return isset($this->post_body['update_id']);
     }
 
     public function getUserIdOnPlatform() : string {
@@ -128,96 +122,149 @@ class VkComDriver implements IDriver {
     }
 
     public function getEvent(UserModel $user_model) : IEvent {
-        $type = $this->post_body["type"];
-        if ($type == "confirmation") {
-            exit($_ENV["vkcom_confirmation"]);
+        $event_id = $this->post_body['update_id'];
+        $u = $this->post_body; // https://core.telegram.org/bots/api#update
+
+        // Определён ли тип события
+        $type_known = false;
+
+        // Какое поле заполнено в объекте помимо update_id (название)
+        // Перечисление полей: https://core.telegram.org/bots/api#update
+        $field = null;
+
+        // Объект заполненного поля
+        $field_obj = null;
+
+        // Тип второго поля
+        // Перечисление типов https://core.telegram.org/bots/api#available-types
+        $field_type = null;
+
+        // Это текстовое сообщение?
+        $is_text_msg = false;
+
+        // Это событие обратного вызова?
+        $is_callback = false;
+
+        // Текст сообщения если текущее событие - текстовое сообщение
+        $msg_text = '';
+
+        // ID сообщения если есть
+        $msg_id = null;
+
+        if (isset($u['message']) {
+            $field = 'message';
+            $is_text_msg = true;
+            $type_known = true;
         }
-        
-        $object = $this->post_body["object"];
-        $chat_with_user = new DirectChat($this->getUserIdOnPlatform());
-        
-        // Узнаём чат события
-        switch ($type) {
-            case "message_new":
-                if ($object["message"]["peer_id"] > 2000000000) {
-                    $chat_of_msg = new GroupChat($object["message"]["peer_id"]);
-                } else {
-                    $chat_of_msg = $chat_with_user;
-                }
+
+        if (!$type_known && isset($u['callback_query'])) {
+            $field = 'callback_query';
+            $is_callback = true;
+            $type_known = true;
+        }
+
+        if ($type_known) {
+            $field_obj = $u[$field];
+        }
+
+        // На основании названия заполненного поля определяем его тип
+        switch ($field) {
+            case 'message':
+                $field_type = 'Message';
                 break;
-                
-            case "message_event":
-                if ($object["peer_id"] > 2000000000) {
-                    $chat_of_msg = new GroupChat($object["peer_id"]);
-                } else {
-                    $chat_of_msg = $chat_with_user;
-                }
+
+            case 'callback_query':
+                $field_type = 'CallbackQuery';
                 break;
-            
+
             default:
-                $chat_of_msg = $chat_with_user;
                 break;
         }
-        
-        // Закрываем соединение для того чтобы скрипт мог работать больше чем 10 секунд
-		// Скрипт должен уметь работать больше чем 10 секунд потому что если vk не получил "ok"
-		// за 10 секунд от сервера, он пришлёт запрос ещё раз. На самом деле сервер обрабатывал первый
-		// запрос, и когда он его закончил, он ответил бы "ok", но второй запрос уже прислался...
-		// Так будет происходить 5 раз перед тем как вк не сдастся и не прекратит присылать новые запросы
-		// https://ru.stackoverflow.com/q/893864/418543
-		ob_end_clean();
-		header("Connection: close");
-		ignore_user_abort(true);
-		ob_start();
-		echo "ok";
-		$size = ob_get_length();
-		header("Content-Length: ".$size);
-		ob_end_flush();
-		flush();
-        
-        switch ($type) {
-            case "message_new":
-                $this->current_event = new TextMessageEvent(
-                    null,
-                    $object["message"]["conversation_message_id"],
-                    $user_model,
-                    $chat_of_msg,
-                    $object["message"]["text"],
-                    []
-                );
+
+        // Определяем пользователя платформы
+        switch ($field_type) {
+            case 'Message':
+            case 'CallbackQuery':
+                $this->current_user = $field_obj['from'];
                 break;
-            
-            case "message_event":
-                $payload = $object["payload"];
-                
-                $this->execApiMethod('messages.sendMessageEventAnswer', [
-                    'event_id' => $object['event_id'],
-                    'user_id' => $object['user_id'],
-                    'peer_id' => $object['peer_id'],
-                    'event_data' => ''
-                ]);
-                
-                $this->current_event = new CallbackEvent(
-                    $object["event_id"],
-                    $object["conversation_message_id"],
-                    $object["event_id"],
-                    $user_model,
-                    $chat_of_msg,
-                    CallbackType::from($payload["type"]),
-                    $payload["data"]
-                );
-                break;
-            
+
             default:
-                $this->current_event = new UnknownEvent(
-                    null,
-                    null,
-                    $user_model,
-                    $chat_of_msg,
-                    ""
-                );
                 break;
         }
+
+        // Определяем чат платформы
+        // 1. Получаем объект чата https://core.telegram.org/bots/api#chat
+        switch ($field_type) {
+            case 'Message':
+                $chat_http = $field_obj['chat'];
+                break;
+            case 'CallbackQuery':
+                $chat_instance = $field_obj['chat_instance'];
+                // чё это такое
+                break;
+
+            default:
+                break;
+        }
+
+        switch ($chat_http['type']) {
+            case 'private':
+                // Из чата с пользователем
+                $chat_obj = new DirectChat($chat_http['id']);
+                break;
+
+            case 'group':
+            case 'supergroup':
+            case 'channel':
+                // Групповой чат
+                $chat_obj = new GroupChat($chat_http['id']);
+                break;
+
+            default:
+                // Неизвестный тип чата. Считаем что с пользователем
+                $chat_obj = new DirectChat($chat_http['id']);
+                break;
+        }
+
+        // Определяем текст и ID сообщения
+        switch ($field_type) {
+            case 'Message':
+                $msg_text = $field_obj['text'];
+                $msg_id = $field_obj['message_id'];
+                break;
+            case 'CallbackQuery':
+                $msg_text = '';
+                $msg_id = $field_obj['message'];
+            default:
+                break;
+        }
+
+        // Строим объект события
+        if ($is_text_msg) {
+            $event = new TextMessageEvent(
+                $event_id,
+                $msg_id,
+                $user_model,
+                $chat_obj,
+                $msg_text,
+                []
+            );
+        } else if ($is_callback) {
+            $payload = $field_obj['data'];
+            
+            $event = new CallbackEvent(
+                $event_id,
+                $msg_id,
+                $field_obj['id'],
+                $user_model,
+                $chat_obj,
+                $msg_text,
+                CallbackType::from($payload["type"]),
+                $payload["data"]
+            );
+        }
+
+        $this->current_event = $event;
         
         return $this->current_event;
     }

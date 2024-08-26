@@ -43,6 +43,7 @@ enum CallbackType: int {
     case SelectedDateForCurrentTeacherRasp = 20;
     case SelectedDateForGroupRasp = 12;
     case SelectedDateForTeacherRasp = 16;
+    case SelectedDateForCabinetRasp = 21;
     #endregion
 
     #region После выбора сотрудника

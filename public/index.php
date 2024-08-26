@@ -8,6 +8,7 @@ use BotKit\Bot;
 // Загрузка драйверов. Этот код можно редактировать до строки
 // "Нельзя редактировать дальше"
 use BotKit\Drivers\VkComDriver;
+use BotKit\Drivers\TelegramOrgDriver;
 
 Bot::loadDriver(new VkComDriver());
 // Нельзя редактировать дальше

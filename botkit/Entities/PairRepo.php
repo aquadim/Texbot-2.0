@@ -47,4 +47,28 @@ class PairRepo extends EntityRepository {
 
         return $query->getResult();
     }
+
+    // Ищет пары, связанные с местом на заданный день
+    public function getPairsForPlace(Place $p, $date) {
+        $em = $this->getEntityManager();
+
+        $query = $em->createQuery(
+        'SELECT pcd, p, pn, e, s, g '.
+        'FROM '.PairConductionDetail::class.' pcd '.
+        'JOIN pcd.pair p '.
+        'JOIN pcd.employee e '.
+        'JOIN p.pair_name pn '.
+        'JOIN p.schedule s '.
+        'JOIN s.college_group g '.
+        'WHERE s.day=:date '.
+        'AND pcd.place=:place'
+        );
+
+        $query->setParameters([
+            'place'=>$p,
+            'date'=>$date
+        ]);
+
+        return $query->getResult();
+    }
 }

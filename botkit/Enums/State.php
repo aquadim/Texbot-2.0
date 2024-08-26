@@ -10,4 +10,5 @@ enum State: int {
     case Hub = 2;
     case EnterJournalLogin = 3;
     case EnterJournalPassword = 4;
+    case EnterCabinetLocationForRasp = 5;
 }

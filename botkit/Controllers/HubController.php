@@ -45,6 +45,16 @@ class HubController extends Controller {
         $this->replyText("❌ Сначала пройди регистрацию");
     }
 
+    // Отправляет сообщение с запретом выполнения студенту
+    private function errorStudentNotAllowed() {
+        $this->replyText("❌ Студентам эта функция недоступна");
+    }
+
+    // Отправляет сообщение с запретом выполнения преподу
+    private function errorTeacherNotAllowed() {
+        $this->replyText("❌ Преподавателям эта функция недоступна");
+    }
+
     // Показывает выбор даты расписания
     // Если пользователь - студент, расписание создаётся для группы, иначе для
     // преподавателя
@@ -80,6 +90,7 @@ class HubController extends Controller {
 
         if ($user_ent->isTeacher()) {
             // Преподам оценки недоступны
+            $this->errorTeacherNotAllowed();
             return;
         }
 
@@ -167,6 +178,27 @@ class HubController extends Controller {
             $period->getOrdNumber().'-'.$this->u->getIdOnPlatform(),
             $m->getPhotos()[0]->getId()
         );
+    }
+
+    // Кабинеты
+    public function cabinets() {
+        $user_ent = $this->u->getEntity();
+
+        if ($user_ent->isStudent()) {
+            $this->errorStudentNotAllowed();
+            return;
+        }
+
+        if (!$user_ent->isTeacher()) {
+            $this->errorNotRegistered();
+            return;
+        }
+
+        $this->u->setState(State::EnterCabinetLocationForRasp);
+        
+        $m = M::create("❓ Введи номер кабинета");
+        $m->setKeyboard(new ClearKeyboard());
+        $this->reply($m);
     }
 
     // Следующая пара
@@ -393,6 +425,8 @@ class HubController extends Controller {
             $this->errorNotRegistered();
             return;
         }
+
+        $this->u->setState(State::Hub);
 
         $m = M::create("🪄 Вжух, теперь ты в главном меню");
         $m->setKeyboard($keyboard);

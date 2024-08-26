@@ -29,6 +29,7 @@ Bot::onCallback(CallbackType::SelectedDateForCurrentStudentRasp, 'ScheduleContro
 Bot::onCallback(CallbackType::SelectedDateForCurrentTeacherRasp, 'ScheduleController@currentTeacherRasp');
 Bot::onCallback(CallbackType::SelectedDateForGroupRasp, 'ScheduleController@groupRasp');
 Bot::onCallback(CallbackType::SelectedDateForTeacherRasp, 'ScheduleController@teacherRasp');
+Bot::onCallback(CallbackType::SelectedDateForCabinetRasp, 'ScheduleController@cabinetRasp');
 
 // Обратные вызовы: пагинация
 Bot::onCallback(CallbackType::GroupSelectionPagination, 'UtilController@groupSelectionPage');
@@ -41,6 +42,7 @@ Bot::onCallback(CallbackType::SelectedEmployeeForNewAccountType, 'UtilController
 // Главное меню
 Bot::onText("Расписание", 'HubController@schedule', State::Hub);
 Bot::onText("Оценки", 'HubController@grades', State::Hub);
+Bot::onText("Кабинеты", 'HubController@cabinets', State::Hub);
 Bot::onText("Что дальше?", 'HubController@nextPair', State::Hub);
 Bot::onText("Где преподаватель?", 'UtilController@sendTeacherSelectionForRasp', State::Hub);
 Bot::onText("Расписание группы", 'HubController@scheduleForOtherGroup', State::Hub);
@@ -54,6 +56,9 @@ Bot::onCommand("/grades", 'HubController@grades');
 Bot::onCommand("/next", 'HubController@nextPair');
 Bot::onCommand("/bells", 'HubController@bellsSchedule');
 Bot::onCommand("/profile", 'HubController@showProfile');
+
+// Ввод кабинета для просмотра его занятости
+Bot::whenUserInState(State::EnterCabinetLocationForRasp, 'ScheduleController@showDateForCabinetRasp');
 
 // АВЕРС
 Bot::whenUserInState(State::EnterJournalLogin, 'OnboardingController@loginEnteredAskPassword');

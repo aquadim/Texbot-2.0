@@ -13,6 +13,7 @@ class CallbackEvent implements IEvent {
     public function __construct(
         protected ?string $event_id,
         protected ?string $message_id,
+        protected ?string $callback_id,
         protected User $user,
         protected IChat $chat,
         protected CallbackType $type,
