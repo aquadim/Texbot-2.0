@@ -44,13 +44,15 @@ class ScheduleController extends Controller {
     // $matrix - матрица данных
     // $body_col_constraints - максимум символов в колонках тела таблицы
     // $title_constraint - максимум символов в строке названия изображения
+    // $date - дата изображения в формате ГГГГ-ММ-ДД
     private function getImage(
         string $imagen_class,
         string $title,
         array $legend,
         array $matrix,
         array $body_col_constraints,
-        int $title_constraint
+        int $title_constraint,
+        string $date
     ) : PhotoAttachment {
 
         // Дата изображения
@@ -65,7 +67,7 @@ class ScheduleController extends Controller {
 
         $image_title = sprintf($title, $date_string);
 
-        $filename = $$imagen_class::generateTable(
+        $filename = $imagen_class::generateTable(
             $matrix,
             $legend,
             $image_title,
@@ -73,7 +75,7 @@ class ScheduleController extends Controller {
             $title_constraint
         );
 
-        return $filename;
+        return PhotoAttachment::fromFile($filename);
     }
 
     // Собирает пары ГРУППЫ, рисует расписание и отправляет пользователю
@@ -124,24 +126,25 @@ class ScheduleController extends Controller {
             ];
         }
 
-        $filename = $this->getImage(
+        $img = $this->getImage(
             GenericImagen::class,
             'Расписание группы '.$group->getHumanName().' на %s',
             ['Время', 'Дисциплина', 'Детали проведения'],
             $matrix,
             [0, 40, 30],
-            25
+            25,
+            $date
         );
         
         $m = M::create(getDoneText());
-        $m->addPhoto(PhotoAttachment::fromFile($filename));
+        $m->addPhoto($img);
         $this->editAssociatedMessage($m);
 
         createCache(
             ImageCacheType::GroupSchedule,
             $this->u->getEntity()->getPlatform(),
             $group->getId().'-'.$date,
-            $m->getPhotos()[0]->getId()
+            $img->getId()
         );
     }
 
@@ -196,24 +199,25 @@ class ScheduleController extends Controller {
             ];
         }
 
-        $filename = $this->getImage(
+        $img = $this->getImage(
             GenericImagen::class,
             'Расписание преподавателя '.$employee->getNameWithInitials().' на %s',
             ['Время', 'Дисциплина', 'Группа', 'Место проведения'],
             $matrix,
             [0, 40, 0, 30],
-            30
+            30,
+            $date
         );
         
         $m = M::create(getDoneText());
-        $m->addPhoto(PhotoAttachment::fromFile($filename));
+        $m->addPhoto($img);
         $this->editAssociatedMessage($m);
 
         createCache(
             ImageCacheType::TeacherSchedule,
             $this->u->getEntity()->getPlatform(),
             $employee->getId().'-'.$date,
-            $m->getPhotos()[0]->getId()
+            $img->getId()
         );
     }
 
@@ -266,24 +270,25 @@ class ScheduleController extends Controller {
             ];
         }
 
-        $filename = $this->getImage(
+        $img = $this->getImage(
             GenericImagen::class,
             'Занятость кабинета '.$place->getName().' на %s',
             ['Время', 'Дисциплина', 'Группа', 'Преподаватель'],
             $matrix,
             [0, 40, 0, 0],
-            30
+            30,
+            $date
         );
 
         $m = M::create(getDoneText());
-        $m->addPhoto(PhotoAttachment::fromFile($filename));
+        $m->addPhoto($img);
         $this->editAssociatedMessage($m);
 
         createCache(
             ImageCacheType::OccupancySchedule,
             $this->u->getEntity()->getPlatform(),
             $place->getId().'-'.$date,
-            $m->getPhotos()[0]->getId()
+            $img->getId()
         );
     }
 
