@@ -56,6 +56,16 @@ function isGroupName($string) {
     return true;
 }
 
+// Парсить неактуальные даты?
+if ($argv[2] === '--parse-irrelevant') {
+    $parse_irrelevant = true;
+} else if ($argv[2] === '--no-parse-irrelevant') {
+    $parse_irrelevant = false;
+} else {
+    err('Второй аргумент не распознан.');
+    exit();
+}
+
 #region Считывание информации
 // Загрузка файла расписания
 info('Загрузка файла расписания...');
@@ -177,29 +187,22 @@ foreach ($textruns as $text) {
     // На основании предыдущих данных определяем дату в формате дд-мм-гггг
     // Как год берётся текущий год на сервере
     // https://stackoverflow.com/a/1699980
-    $dates[] = mktime(
-        $hour = 0,
-        $minute = 0,
-        $second = 0,
-        $month = $month_id + 1,
-        $day = $words[$month_word_index - 1],
+    $dates[] = DateTimeImmutable::createFromFormat(
+        'm-d',
+        ($month_id+1).'-'.($words[$month_word_index - 1])
     );
 }
 
 info("===Парсинг таблиц===");
 
-// Парсить нерелевантные?
-if ($argv[2] === '0') {
-    $parse_irrelevant = true;
-} else {
-    $parse_irrelevant = false;
-}
-
 if (count($dates) != count($tables)) {
     warning("Предупреждение: количество дат не совпадает с количеством таблиц");
 }
 $counter = 0;
-$date_relevancy = time() + 172800; // После какой временной отметки расписание не актуально? (текущее время + 2 дня)
+
+// После какой временной отметки расписание не актуально? (текущее время + 4 дня)
+$now = new DateTimeImmutable();
+$date_relevancy = $now->add(new DateInterval("P4D"));
 
 $em = Database::getEm();
 
@@ -209,28 +212,35 @@ $dql_find_group =
 'WHERE g.course_num=:courseNum AND s.name=:specName';
 
 foreach($dates as $date) {
+    // Отформатированная дата
+    $date_text = $date->format("Y-m-d");
+
     // Проверяем актуальность даты
-    if ($date > $date_relevancy && $parse_irrelevant === false) {
-    warning(date("Y-m-d", $date).' пропускается - т.к. дата не актуальна');
+    // Должно быть позже чем сейчас, но раньше чем через 4 дня
+    if (($date > $date_relevancy || $date < $now) && $parse_irrelevant==false) {
+        warning($date_text.' пропускается - т.к. дата не актуальна');
         continue;
     }
+
+    info("Выполняется парсинг даты ".$date_text);
     
     // День этого расписания
-    $schedule_day = (new \DateTimeImmutable())->setTimestamp($date);
+    $schedule_day = $date->setTime(0, 0, 0);
     
     // Поиск существующих расписаний. Если они найдены, удаляем!
     $existing = $em
-    ->getRepository(Entities\Schedule::class)
-    ->findBy([
-    'day' => $schedule_day
-    ]);
+        ->getRepository(Entities\Schedule::class)
+        ->findBy([
+            'day' => $schedule_day
+        ]);
+
     foreach ($existing as $s) {
-    $em->remove($s);
+        $em->remove($s);
     }
     $em->flush();
 
     // Дата актуальна. Парсим таблицу, связанную с этой датой
-    info("Выполняется парсинг таблицы для временной метки: ".date("Y-m-d", $date));
+    info("Выполняется парсинг таблицы для даты: ".$date_text);
     $table = $tables[$counter]; // Объект таблицы из документа
     $data = array(); // Двумерный массив, содержащий в себе данные таблицы
 
@@ -238,14 +248,14 @@ foreach($dates as $date) {
     foreach ($rows as $row) {
         $datarow = array();
         $cells = $row->getCells();
-    foreach ($cells as $cell) {
+        foreach ($cells as $cell) {
             $celltext = '';
             foreach ($cell->getElements() as $element) {
                 $celltext .= getTextFromRun($element);
             }
             $datarow[] = trim($celltext, "\xC2\xA0\n ");
-    }
-    $data[] = $datarow;
+        }
+        $data[] = $datarow;
     }
 
     // Настоящий парсинг таблицы
@@ -256,155 +266,156 @@ foreach($dates as $date) {
      * название группы, то для каждой группы выполняется сбор пар */
     for ($y = 0; $y < $dataheight; $y++) {
     
-    $row_contains_group_name = false;
-    for ($x = 0; $x < $datawidth; $x++) {
-        if (isGroupName($data[$y][$x])) {
-        $row_contains_group_name = true;
-        break;
+        $row_contains_group_name = false;
+        for ($x = 0; $x < $datawidth; $x++) {
+            if (isGroupName($data[$y][$x])) {
+                $row_contains_group_name = true;
+                break;
+            }
         }
-    }
     
-    if (!$row_contains_group_name) {
-        // В строке не обнаружены названия групп. Пропускаем строку
-        continue;
-    }
-    
-    // Циклом проходимся по всем названиям групп в этой строке.
-    for ($x = 0; $x < $datawidth; $x++) {
-        
-        if (!isGroupName($data[$y][$x])) {
-        // Это не название группы, пропускаем столбец
-        continue;
+        if (!$row_contains_group_name) {
+            // В строке не обнаружены названия групп. Пропускаем строку
+            continue;
         }
-                
-        $group_parts = explode(" ", $data[$y][$x]);
-        $group_course = $group_parts[0];
-        $group_spec = $group_parts[1];
-        
-        // Поиск группы в БД
-        $q = $em->createQuery($dql_find_group);
-        $q->setParameters([
-        'courseNum'=> $group_course,
-        'specName' => $group_spec
-        ]);
-        $result = $q->getResult();
+    
+        // Циклом проходимся по всем названиям групп в этой строке.
+        for ($x = 0; $x < $datawidth; $x++) {
+            
+            if (!isGroupName($data[$y][$x])) {
+                // Это не название группы, пропускаем столбец
+                continue;
+            }
+                    
+            $group_parts = explode(" ", $data[$y][$x]);
+            $group_course = $group_parts[0];
+            $group_spec = $group_parts[1];
+            
+            // Поиск группы в БД
+            $q = $em->createQuery($dql_find_group);
+            $q->setParameters([
+                'courseNum'=> $group_course,
+                'specName' => $group_spec
+            ]);
+            $result = $q->getResult();
 
-        if (count($result) == 0) {
-        // В БД такой группы нет
-        err("Неопознанная группа: ".$data[$y][$x]);
-        adminNotify(
-        "Неопознанная группа во время парсинга расписаний: ".
-        $data[$y][$x].
-        "\nДата расписания: ".date("Y-m-d", $date)
-        );
+            if (count($result) == 0) {
+                // В БД такой группы нет
+                err("Неопознанная группа: ".$data[$y][$x]);
+                adminNotify(
+                    "Неопознанная группа во время парсинга расписаний: ".
+                    $data[$y][$x].
+                    "\nДата расписания: ".$date_text
+                );
                 exit();
-        }
-        $group = $result[0];
-        info("Сбор данных для группы ".$group->getHumanName());
+            }
+            $group = $result[0];
+            info("Сбор данных для группы ".$group->getHumanName());
 
-        // Создание записи расписания
-        $schedule = new Entities\Schedule();
-        $schedule->setCollegeGroup($group);
-        $schedule->setDay($schedule_day);
-        $em->persist($schedule);
+            // Создание записи расписания
+            $schedule = new Entities\Schedule();
+            $schedule->setCollegeGroup($group);
+            $schedule->setDay($schedule_day);
+            $em->persist($schedule);
 
-        // Парсинг пар группы по столбцу до конца таблицы
-        $group_y = $y + 1;
-        while ($group_y < $dataheight) {
-        
-        if (count($data[$group_y]) < 14) {
-            // Скорее всего на этой строке пары заканчиваются
-            break;
-        }
-        
-        $time = $data[$group_y][$x * 2];
+            // Парсинг пар группы по столбцу до конца таблицы
+            $group_y = $y + 1;
+            while ($group_y < $dataheight) {
+            
+                if (count($data[$group_y]) < 14) {
+                    // Скорее всего на этой строке пары заканчиваются
+                    break;
+                }
+            
+                $time = $data[$group_y][$x * 2];
                 if (strlen($time) < 2) {
-            // В столбце времени ничего полезного, пропускаем
-            // эту строку
-            $group_y += 2;
-            continue;
-        }
+                    // В столбце времени ничего полезного, пропускаем
+                    // эту строку
+                    $group_y += 2;
+                    continue;
+                }
 
-        $pair_name = $data[$group_y][$x * 2 + 1];
-        if (strlen($pair_name) < 3) {
-            // В столбце пары ничего полезного, пропускаем
-            // эту строку
-            $group_y += 2;
-            continue;
-        }
-        
-        $teacher_data = $data[$group_y + 1][$x * 2 + 1];
+                $pair_name = $data[$group_y][$x * 2 + 1];
+                if (strlen($pair_name) < 3) {
+                    // В столбце пары ничего полезного, пропускаем
+                    // эту строку
+                    $group_y += 2;
+                    continue;
+                }
             
-        // Разбор времени пары
-        $pair_parts = explode('.', $time);
-        $pair_time = $schedule_day->setTime(
-            (int)$pair_parts[0],
-            (int)$pair_parts[1]
-        );
-        
-        // Поиск/создание названия пары
-        $pair_name_obj = $em
-            ->getRepository(Entities\PairName::class)
-            ->findOneBy(['name' => $pair_name]);
-        if ($pair_name_obj === null) {
-            // Такого названия пары в БД нет. Создаём!
-            $pair_name_obj = new Entities\PairName();
-            $pair_name_obj->setName($pair_name);
-            $em->persist($pair_name_obj);
-            $em->flush();
-        }
-        
-        // Создание записи пары
-        $pair = new Entities\Pair();
-        $pair->setSchedule($schedule);
-        $pair->setTime($pair_time);
-        $pair->setPairName($pair_name_obj);
-        $em->persist($pair);
-        
-        // Разбор деталей проведения
-        $details = explode('/', $teacher_data);
-        foreach ($details as $detail) {
-            // Формат: "фамилия преподавателя" "место проведения"
-            // Либо: "фамилия преподавателя"
-            $parts = explode(" ", $detail);
+                $teacher_data = $data[$group_y + 1][$x * 2 + 1];
+                
+                // Разбор времени пары
+                $pair_parts = explode('.', $time);
+                $pair_time = $schedule_day->setTime(
+                    (int)$pair_parts[0],
+                    (int)$pair_parts[1]
+                );
             
-            $employee = $em
-            ->getRepository(Entities\Employee::class)
-            ->findOneBy(['surname' => $parts[0]]);
-            if ($employee === null) {
-            err("Преподаватель {$parts[0]} не найден!");
-            adminNotify(
-            "Преподаватель {$parts[0]} не найден, обновление расписания завершено немедленно\\.\n".
-            "Примите меры <b>немедленно</b>");
-            exit();
-            }
+                // Поиск/создание названия пары
+                $pair_name_obj = $em
+                    ->getRepository(Entities\PairName::class)
+                    ->findOneBy(['name' => $pair_name]);
+                if ($pair_name_obj === null) {
+                    // Такого названия пары в БД нет. Создаём!
+                    $pair_name_obj = new Entities\PairName();
+                    $pair_name_obj->setName($pair_name);
+                    $em->persist($pair_name_obj);
+                    $em->flush();
+                }
             
-            if (count($parts) === 1) {
-            // Есть только фамилия
-            $place = null;
-            } else {
-            $place = $em
-                ->getRepository(Entities\Place::class)
-                ->findOneBy(['name' => $parts[1]]);
+                // Создание записи пары
+                $pair = new Entities\Pair();
+                $pair->setSchedule($schedule);
+                $pair->setTime($pair_time);
+                $pair->setPairName($pair_name_obj);
+                $em->persist($pair);
             
-            if ($place === null) {
-                // Места нет, создаём
-                $place = new Entities\Place();
-                $place->setName($parts[1]);
-                $em->persist($place);
-                $em->flush();
-            }
-            }
+                // Разбор деталей проведения
+                $details = explode('/', $teacher_data);
+                foreach ($details as $detail) {
+                    // Формат: "фамилия преподавателя" "место проведения"
+                    // Либо: "фамилия преподавателя"
+                    $parts = explode(" ", $detail);
+                    
+                    $employee = $em
+                    ->getRepository(Entities\Employee::class)
+                    ->findOneBy(['surname' => $parts[0]]);
+                    if ($employee === null) {
+                        err("Преподаватель {$parts[0]} не найден!");
+                        adminNotify(
+                            "[schedule-update.php]Преподаватель {$parts[0]} не найден, обновление расписания завершено немедленно\\.\n".
+                            "Примите меры"
+                        );
+                        exit();
+                    }
+                    
+                    if (count($parts) === 1) {
+                        // Есть только фамилия
+                        $place = null;
+                    } else {
+                        $place = $em
+                            ->getRepository(Entities\Place::class)
+                            ->findOneBy(['name' => $parts[1]]);
+                        
+                        if ($place === null) {
+                            // Места нет, создаём
+                            $place = new Entities\Place();
+                            $place->setName($parts[1]);
+                            $em->persist($place);
+                            $em->flush();
+                        }
+                    }
+                    
+                    $conduction_detail = new Entities\PairConductionDetail();
+                    $conduction_detail->setEmployee($employee);
+                    $conduction_detail->setPlace($place);
+                    $conduction_detail->setPair($pair);
+                    $em->persist($conduction_detail);
+                }
             
-            $conduction_detail = new Entities\PairConductionDetail();
-            $conduction_detail->setEmployee($employee);
-            $conduction_detail->setPlace($place);
-            $conduction_detail->setPair($pair);
-            $em->persist($conduction_detail);
-        }
-        
-        // На одну пару приходится две строки
-        $group_y += 2;
+                // На одну пару приходится две строки
+                $group_y += 2;
             }
         }
     }
