@@ -3,7 +3,6 @@
 namespace BotKit\Entities;
 
 use Doctrine\ORM\EntityRepository;
-use DateTimeImmutable;
 
 class PairRepo extends EntityRepository {
 
