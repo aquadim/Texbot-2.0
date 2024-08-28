@@ -14,6 +14,7 @@ use BotKit\Entities\Student;
 use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Teacher;
 use BotKit\Entities\Employee;
+use BotKit\Entities\ErrorReport;
 
 use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\TeacherOrStudentKeyboard;
@@ -211,5 +212,68 @@ class UtilController extends Controller {
         $m = M::create("✅ Тип аккаунта обновлён, теперь ты - студент");
         $m->setKeyboard(new StudentHubKeyboard());
         $this->editAssociatedMessage($m);
+    }
+
+    // Шаг 1: В чём проблема?
+    public function reportProblem() {
+
+        // Надо сначала зарегистрироваться
+        $user_ent = $this->u->getEntity();
+        if (!$user_ent->isStudent() && !$user_ent->isTeacher()) {
+            $this->replyText("❌ Сначала зарегистрируйся");
+            return;
+        }
+        
+        $this->replyText("💥 Напиши в чём проблема");
+        $this->u->setState(State::EnterReportProblem);
+    }
+    
+    // Шаг 2: Шаги воспроизведения?
+    public function reportSteps() {
+
+        // Создание сущности
+        $report = new ErrorReport();
+        $report->setUser($this->u->getEntity());
+        $report->setDescription($this->getEventText());
+        $report->setCreatedAt(new \DateTimeImmutable());
+
+        $em = Database::getEm();
+        $em->persist($report);
+
+        $this->replyText("💥 Напиши шаги, которые привели к этой ошибке");
+        $this->u->setState(State::EnterReportSteps);
+    }
+
+    // Шаг 3: Всё
+    public function reportFinish() {
+
+        // Поиск ранее созданной сущности
+        $em = Database::getEm();
+        $user_ent = $this->u->getEntity();
+
+        $q = $em->createQuery(
+        'SELECT r FROM '.ErrorReport::class.' r '.
+        'WHERE r.user=:user '.
+        'ORDER BY r.created_at DESC');
+        $q->setMaxResults(1);
+        $q->setParameters(['user'=>$user_ent]);
+        $result = $q->getResult();
+        $report = $result[0];
+
+        // Обновление
+        $report->setStepsToReproduce($this->getEventText());
+        $em->flush();
+
+        // Перенос в хаб
+        if ($user_ent->isStudent()) {
+            $keyboard = new StudentHubKeyboard();
+        } else {
+            $keyboard = new TeacherHubKeyboard();
+        }
+
+        $this->u->setState(State::Hub);
+        $m = M::create("Отчёт сохранён, возвращаем тебя в главное меню");
+        $m->setKeyboard($keyboard);
+        $this->reply($m);
     }
 }

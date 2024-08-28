@@ -56,6 +56,7 @@ Bot::onCommand("/grades", 'HubController@grades');
 Bot::onCommand("/next", 'HubController@nextPair');
 Bot::onCommand("/bells", 'HubController@bellsSchedule');
 Bot::onCommand("/profile", 'HubController@showProfile');
+Bot::onCommand("/report", 'UtilController@reportProblem');
 
 // Ввод кабинета для просмотра его занятости
 Bot::whenUserInState(State::EnterCabinetLocationForRasp, 'ScheduleController@showDateForCabinetRasp');
@@ -63,6 +64,10 @@ Bot::whenUserInState(State::EnterCabinetLocationForRasp, 'ScheduleController@sho
 // АВЕРС
 Bot::whenUserInState(State::EnterJournalLogin, 'OnboardingController@loginEnteredAskPassword');
 Bot::whenUserInState(State::EnterJournalPassword, 'OnboardingController@passwordEnteredShowHub');
+
+// Отчёт об ошибках
+Bot::whenUserInState(State::EnterReportProblem, 'OnboardingController@reportSteps');
+Bot::whenUserInState(State::EnterReportSteps, 'OnboardingController@reportFinish');
 
 // Первое взаимодействие
 Bot::whenUserInState(State::FirstInteraction, 'OnboardingController@welcome');
