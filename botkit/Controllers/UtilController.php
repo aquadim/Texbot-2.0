@@ -85,12 +85,7 @@ class UtilController extends Controller {
         $paginator = new Paginator($query, fetchJoinCollection: false);
 
         // Отправка сообщения
-        $m = M::create($message);
-        $m->setKeyboard(new SelectEmployeeKeyboard(
-            $paginator,
-            $goal,
-            $offset
-        ));
+        
         if ($reply) {
             $this->reply($m);
         } else {
@@ -110,21 +105,33 @@ class UtilController extends Controller {
 
     // Отправляет выбор преподавателей для просмотра их расписания
     public function sendTeacherSelectionForRasp() {
-        $this->sendTeacherSelectionPage(
-            "Выбери преподавателя",
+        $em = Database::getEm();
+        $paginator = $em->getRepository(Employee::class)
+            ->getPageElements($this->d->getPlatformDomain(), 0);
+
+        $m = M::create("Выбери преподавателя");
+        $m->setKeyboard(new SelectEmployeeKeyboard(
+            $paginator,
             CallbackType::SelectedEmployeeForRasp,
-            0,
-            true
-        );
+            0
+        ));
+
+        $this->reply($m);
     }
 
     public function teacherSelectionPage($goal, $offset) {
-        $this->sendTeacherSelectionPage(
-            "Выбери преподавателя",
+        $em = Database::getEm();
+        $paginator = $em->getRepository(Employee::class)
+            ->getPageElements($this->d->getPlatformDomain(), $offset);
+
+        $m = M::create("Выбери преподавателя");
+        $m->setKeyboard(new SelectEmployeeKeyboard(
+            $paginator,
             CallbackType::from($goal),
-            $offset,
-            false
-        );
+            $offset
+        ));
+
+        $this->editAssociatedMessage($m);
     }
 
     // Шаг 1 смены типа аккаунта
@@ -142,12 +149,19 @@ class UtilController extends Controller {
 
         if ($type == 2) {
             // Показать клавиатуру выбора преподавателей
-            $this->sendTeacherSelectionPage(
-                "Выбери себя из списка",
+            $em = Database::getEm();
+            $paginator = $em->getRepository(Employee::class)
+                ->getPageElements($this->d->getPlatformDomain(), 0);
+
+            $m = M::create("Выбери себя из списка");
+            $m->setKeyboard(new SelectEmployeeKeyboard(
+                $paginator,
                 CallbackType::SelectedEmployeeForNewAccountType,
-                0,
-                true
-            );
+                0
+            ));
+
+            $this->reply($m);
+            
         } else {
             // Показать клавиатуру выбора группы
             $this->replyText(

@@ -49,6 +49,7 @@ enum CallbackType: int {
     #region После выбора сотрудника
     case SelectedEmployeeForRasp = 15;
     case SelectedEmployeeForNewAccountType = 18;
+    case SelectedEmployeeForRegister = 22;
     #endregion
     
     #region Пагинация

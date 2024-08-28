@@ -38,6 +38,7 @@ Bot::onCallback(CallbackType::EmployeeSelectionPagination, 'UtilController@teach
 // Обратные вызовы: выбран преподаватель
 Bot::onCallback(CallbackType::SelectedEmployeeForRasp, 'ScheduleController@showDateForEmployeeRasp');
 Bot::onCallback(CallbackType::SelectedEmployeeForNewAccountType, 'UtilController@newAccountTypeTeacher');
+Bot::onCallback(CallbackType::SelectedEmployeeForRegister, 'OnboardingController@teacherSelectedEmployee');
 
 // Главное меню
 Bot::onText("Расписание", 'HubController@schedule', State::Hub);

@@ -9,8 +9,10 @@ use BotKit\Models\Keyboards\ClearKeyboard;
 use BotKit\Database;
 
 use BotKit\Entities\Student;
+use BotKit\Entities\Teacher;
 use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Period;
+use BotKit\Entities\Employee;
 
 use BotKit\Keyboards\TOSKeyboard;
 use BotKit\Keyboards\TeacherOrStudentKeyboard;
@@ -18,6 +20,7 @@ use BotKit\Keyboards\SelectGroup1Keyboard;
 use BotKit\Keyboards\StudentHubKeyboard;
 use BotKit\Keyboards\TeacherHubKeyboard;
 use BotKit\Keyboards\YesNoKeyboard;
+use BotKit\Keyboards\SelectEmployeeKeyboard;
 
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
@@ -26,9 +29,14 @@ class OnboardingController extends Controller {
     
     private function replyWelcomeWithHub() {
         $this->u->setState(State::Hub);
+        $user_ent = $this->u->getEntity();
         
         $m = M::create("Ответы сохранены! Добро пожаловать");
-        $m->setKeyboard(new StudentHubKeyboard());
+        if ($user_ent->isStudent()) {
+            $m->setKeyboard(new StudentHubKeyboard());
+        } else {
+            $m->setKeyboard(new TeacherHubKeyboard());
+        }
         $this->reply($m);
     }
     
@@ -51,25 +59,40 @@ class OnboardingController extends Controller {
     
     // Выбран тип аккаунта
     public function selectedAccountType($answer) {
+        $u_ent = $this->u->getEntity();
+        $em = Database::getEm();
+
         if ($answer == "student") {
-            $u_obj = $this->u->getEntity();
-            
-            // Создать объект студента
-            $em = Database::getEm();
-            $s = new Student();
-            $s->setUser($u_obj);
-            $u_obj->setAccountType(1);
-            $em->persist($s);
+            $object = new Student();
+            $account_type = 1;
             
             // Отправить сообщение с выбором группы
             $m = M::create("На каком курсе сейчас учишься?");
             $m->setKeyboard(new SelectGroup1Keyboard(
                 CallbackType::SelectedGroupForStudentRegister
             ));
-            $this->editAssociatedMessage($m);
+
         } else {
-            $this->replyText("TODO");
+            $object = new Teacher();
+            $account_type = 2;
+
+            // Показать клавиатуру выбора преподавателей
+            $paginator = $em->getRepository(Employee::class)
+                ->getPageElements($this->d->getPlatformDomain(), 0);
+
+            $m = M::create("Выбери себя из списка");
+            $m->setKeyboard(new SelectEmployeeKeyboard(
+                $paginator,
+                CallbackType::SelectedEmployeeForRegister,
+                0
+            ));
         }
+
+        $object->setUser($u_ent);
+        $u_ent->setAccountType($account_type);
+        $em->persist($object);
+
+        $this->editAssociatedMessage($m);
     }
     
     // Студент выбрал свою группу
@@ -97,6 +120,20 @@ class OnboardingController extends Controller {
             []
         ));
         $this->editAssociatedMessage($m);
+    }
+    
+    // Препод выбрал связанного сотрудника
+    public function teacherSelectedEmployee($employee_id) {
+        // Найти препода, присвоить ему сотрудника
+        $em = Database::getEm();
+        $teacher = $em->getRepository(Teacher::class)->findOneBy(
+            ['user' => $this->u->getEntity()]
+        );
+        $employee = $em->find(Employee::class, $employee_id);
+        $teacher->setEmployee($employee);
+        
+        // Это всё что нужно, переносим в хаб
+        $this->replyWelcomeWithHub();
     }
     
     // Показ сообщения с просьбой ввести логин
