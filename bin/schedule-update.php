@@ -5,7 +5,7 @@
 // https://stackoverflow.com/questions/50994146/read-ms-word-document-with-php-word
 // Использование:
 /* php schedule-update.php <файл расписания> 
- * <нужно ли делать проверку актуальности (1/0)> */
+ * <нужно ли делать проверку актуальности (--parse-irrelevant/--no-parse-irrelevant)> */
 
 require realpath(__DIR__ . '/../botkit/bootstrap.php');
 
