@@ -25,8 +25,8 @@ class PairConductionDetail {
 
     // Какой преподаватель
     #[ORM\ManyToOne(Employee::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private Employee $employee;
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Employee $employee = null;
 
     // В каком месте
     #[ORM\ManyToOne(Place::class)]
@@ -34,7 +34,7 @@ class PairConductionDetail {
     private ?Place $place = null;
 
     #region getters
-    public function getEmployee() : Employee {
+    public function getEmployee() : ?Employee {
         return $this->employee;
     }
 
@@ -52,7 +52,7 @@ class PairConductionDetail {
         $this->pair = $pair;
     }
     
-    public function setEmployee(Employee $employee) : void {
+    public function setEmployee(?Employee $employee) : void {
         $this->employee = $employee;
     }
 

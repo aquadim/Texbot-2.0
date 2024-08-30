@@ -21,11 +21,9 @@ function getConductionDetailsAsText($details) : string {
         $employee = $detail->getEmployee();
         $place = $detail->getPlace();
 
-        if ($place === null) {
-            $details_texts[] = $employee->getSurname();
-        } else {
-            $details_texts[] = $employee->getSurname().' '.$place->getName();
-        }
+        $place_text = $place ? $place->getName() : '';
+        $teacher_text = $employee ? $employee->getSurname() : '';
+        $details_texts[] = trim($teacher_text.' '.$place_text);
     }
 
     return implode(' / ', $details_texts);

@@ -14,8 +14,24 @@ class SelectEmployeeKeyboard extends InlineKeyboard {
     protected bool $cacheable = false;
     protected bool $one_time = true;
 
-    public function __construct($paginator, CallbackType $goal, $offset) {
+    // $paginator - объект Paginator из Doctrine, содержит объекты сотрудников
+    // $goal - CallbackType, который передастся в routing при выборе
+    // $offset - какое количество первых результатов пропускается
+    // $platform - платформа мессенджера
+    public function __construct($paginator, CallbackType $goal, $offset, $platform) {
         $this->layout = [];
+
+        switch ($platform) {
+        case 'vk.com':
+            $max_buttons_on_row = 3;
+            break;
+        case 'telegram.org':
+            $max_buttons_on_row = 6;
+            break;
+        default:
+            $max_buttons_on_row = 3;
+            break;
+        }
 
         $row = [];
         $buttons_added = 0;
@@ -31,8 +47,7 @@ class SelectEmployeeKeyboard extends InlineKeyboard {
             $row[] = $button;
             $buttons_added++;
 
-            // 3 кнопки на ряд
-            if ($buttons_added % 3 == 0) {
+            if ($buttons_added % $max_buttons_on_row == 0) {
                 $this->layout[] = $row;
                 $row = [];
                 $buttons_added = 0;

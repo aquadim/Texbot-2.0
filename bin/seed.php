@@ -28,6 +28,25 @@ foreach ($spec_names as $spec_name) {
     $em->persist($spec);
     
     for ($i = 1; $i < 5; $i++) {
+
+        // hack: в 2024 г. были набраны две группы ОС. Поэтому они названы
+        // ОС-1 и ОС-2.
+        if ($i == 1 && $spec_name == 'ОС') {
+            for ($j = 1; $j < 3; $j++) {
+                $hackspec = new Entities\CollegeSpec();
+                $hackspec->setName('ОС-'.$j);
+                $em->persist($hackspec);
+
+                $group = new Entities\CollegeGroup();
+                $group->setSpec($hackspec);
+                $group->setEnrolledAt(2024);
+                $group->setCourseNum(1);
+
+                $em->persist($group);
+            }
+            continue;
+        }
+        
         $group = new Entities\CollegeGroup();
         $group->setSpec($spec);
         $group->setCourseNum($i);
@@ -88,42 +107,48 @@ foreach (file($argv[2]) as $line) {
 
 // Преподаватели
 $teachers = array(
-  array('patron' => 'Германовна', 'name' => 'Ольга', 'surname' => 'Александрова'),
-  array('patron' => 'Владимировна', 'name' => 'Елена', 'surname' => 'Антоненко'),
-  array('patron' => 'Александрович', 'name' => 'Иван', 'surname' => 'Бегунов'),
-  array('patron' => 'Сергеевич', 'name' => 'Александр', 'surname' => 'Бондин'),
-  array('patron' => 'Леонидович', 'name' => 'Андрей', 'surname' => 'Воронин'),
-  array('patron' => 'Валерьевна', 'name' => 'Екатерина', 'surname' => 'Галимова'),
-  array('patron' => 'Альферовна', 'name' => 'Алмазия', 'surname' => 'Гарифова'),
-  array('patron' => 'Валентиновна', 'name' => 'Любовь', 'surname' => 'Дербышева'),
-  array('patron' => 'Николаевна', 'name' => 'Юлия', 'surname' => 'Eремеева'),
-  array('patron' => 'Сергеевна', 'name' => 'Наталья', 'surname' => 'Игнатьева'),
-  array('patron' => 'Анатольевна', 'name' => 'Светлана', 'surname' => 'Ильина'),
-  array('patron' => 'Загидович', 'name' => 'Равиль', 'surname' => 'Исаков'),
-  array('patron' => 'Юрьевна', 'name' => 'Марина', 'surname' => 'Коралихина'),
-  array('patron' => 'Евгеньевна', 'name' => 'Елена', 'surname' => 'Логинова'),
-  array('patron' => 'Сергеевич', 'name' => 'Александр', 'surname' => 'Маскин'),
-  array('patron' => 'Георгиевна', 'name' => 'Людмила', 'surname' => 'Матвеева'),
-  array('patron' => 'Евгеньевич', 'name' => 'Михаил', 'surname' => 'Медведев'),
-  array('patron' => 'Альбертовна', 'name' => 'Альбина', 'surname' => 'Медянцева'),
-  array('patron' => 'Рифовна', 'name' => 'Римма', 'surname' => 'Мингалеева'),
-  array('patron' => 'Александровна', 'name' => 'Елена', 'surname' => 'Немтинова'),
-  array('patron' => 'Нургаянович', 'name' => 'Нурислам', 'surname' => 'Нигаматзянов'),
-  array('patron' => 'Аркадьевна', 'name' => 'Елена', 'surname' => 'Новикова'),
-  array('patron' => 'Леонидовна', 'name' => 'Ольга', 'surname' => 'Овчинникова'),
-  array('patron' => 'Александрович', 'name' => 'Сергей', 'surname' => 'Пивоваров'),
-  array('patron' => 'Анатольевна', 'name' => 'Елена', 'surname' => 'Пономарева'),
-  array('patron' => 'Геннадьевна', 'name' => 'Кристина', 'surname' => 'Поткина'),
-  array('patron' => 'Валерьевна', 'name' => 'Алевтина', 'surname' => 'Пупкова'),
-  array('patron' => 'Анатольевич', 'name' => 'Александр', 'surname' => 'Пушкарев'),
-  array('patron' => 'Станиславовна', 'name' => 'Вера', 'surname' => 'Солоницына'),
-  array('patron' => 'Викторовна', 'name' => 'Жанна', 'surname' => 'Усова'),
-  array('patron' => 'Гаптельнуровна', 'name' => 'Гюзелия', 'surname' => 'Хайрутдинова'),
-  array('patron' => 'Равилевич', 'name' => 'Марсиль', 'surname' => 'Хуснутдинов'),
-  array('patron' => 'Ильсурович', 'name' => 'Рамиль', 'surname' => 'Шамсумухаметов'),
-  array('patron' => 'Викторовна', 'name' => 'Елена', 'surname' => 'Шафикова'),
-  array('patron' => 'Александрович', 'name' => 'Сергей', 'surname' => 'Шешегов'),
-  array('patron' => 'Владимировна', 'name' => 'Наталья', 'surname' => 'Шешегова')
+    array('patron' => 'Германовна', 'name' => 'Ольга', 'surname' => 'Александрова'),
+    array('patron' => 'Владимировна', 'name' => 'Елена', 'surname' => 'Антоненко'),
+    array('patron' => 'Александрович', 'name' => 'Иван', 'surname' => 'Бегунов'),
+    array('patron' => 'Сергеевич', 'name' => 'Александр', 'surname' => 'Бондин'),
+    array('patron' => 'Леонидович', 'name' => 'Андрей', 'surname' => 'Воронин'),
+    array('patron' => 'Валерьевна', 'name' => 'Екатерина', 'surname' => 'Галимова'),
+    array('patron' => 'Альферовна', 'name' => 'Алмазия', 'surname' => 'Гарифова'),
+    array('patron' => 'Валентиновна', 'name' => 'Любовь', 'surname' => 'Дербышева'),
+    array('patron' => 'Николаевна', 'name' => 'Юлия', 'surname' => 'Eремеева'),
+    array('patron' => 'Сергеевна', 'name' => 'Наталья', 'surname' => 'Игнатьева'),
+    array('patron' => 'Анатольевна', 'name' => 'Светлана', 'surname' => 'Ильина'),
+    array('patron' => 'Загидович', 'name' => 'Равиль', 'surname' => 'Исаков'),
+    array('patron' => 'Юрьевна', 'name' => 'Марина', 'surname' => 'Коралихина'),
+    array('patron' => 'Евгеньевна', 'name' => 'Елена', 'surname' => 'Логинова'),
+    array('patron' => 'Сергеевич', 'name' => 'Александр', 'surname' => 'Маскин'),
+    array('patron' => 'Георгиевна', 'name' => 'Людмила', 'surname' => 'Матвеева'),
+    array('patron' => 'Евгеньевич', 'name' => 'Михаил', 'surname' => 'Медведев'),
+    array('patron' => 'Альбертовна', 'name' => 'Альбина', 'surname' => 'Медянцева'),
+    array('patron' => 'Рифовна', 'name' => 'Римма', 'surname' => 'Мингалеева'),
+    array('patron' => 'Александровна', 'name' => 'Елена', 'surname' => 'Немтинова'),
+    array('patron' => 'Нургаянович', 'name' => 'Нурислам', 'surname' => 'Нигаматзянов'),
+    array('patron' => 'Аркадьевна', 'name' => 'Елена', 'surname' => 'Новикова'),
+    array('patron' => 'Леонидовна', 'name' => 'Ольга', 'surname' => 'Овчинникова'),
+    array('patron' => 'Александрович', 'name' => 'Сергей', 'surname' => 'Пивоваров'),
+    array('patron' => 'Анатольевна', 'name' => 'Елена', 'surname' => 'Пономарева'),
+    array('patron' => 'Геннадьевна', 'name' => 'Кристина', 'surname' => 'Поткина'),
+    array('patron' => 'Валерьевна', 'name' => 'Алевтина', 'surname' => 'Пупкова'),
+    array('patron' => 'Анатольевич', 'name' => 'Александр', 'surname' => 'Пушкарев'),
+    array('patron' => 'Станиславовна', 'name' => 'Вера', 'surname' => 'Солоницына'),
+    array('patron' => 'Викторовна', 'name' => 'Жанна', 'surname' => 'Усова'),
+    array('patron' => 'Гаптельнуровна', 'name' => 'Гюзелия', 'surname' => 'Хайрутдинова'),
+    array('patron' => 'Равилевич', 'name' => 'Марсиль', 'surname' => 'Хуснутдинов'),
+    array('patron' => 'Ильсурович', 'name' => 'Рамиль', 'surname' => 'Шамсумухаметов'),
+    array('patron' => 'Викторовна', 'name' => 'Елена', 'surname' => 'Шафикова'),
+    array('patron' => 'Александрович', 'name' => 'Сергей', 'surname' => 'Шешегов'),
+    array('patron' => 'Владимировна', 'name' => 'Наталья', 'surname' => 'Шешегова'),
+
+    // 2024
+    array('patron' => 'Рафисовна', 'name' => 'Наиля', 'surname' => 'Хантимирова'),
+    array('patron' => 'Сергеевна', 'name' => 'Юлия', 'surname' => 'Зезюлина'),
+    array('patron' => 'Владиславовна', 'name' => 'Юлия', 'surname' => 'Тимофеева'),
+    array('patron' => 'Александровна', 'name' => 'Анастасия', 'surname' => 'Суворова')
 );
 foreach ($teachers as $e) {
     $e_obj = new Entities\Employee();

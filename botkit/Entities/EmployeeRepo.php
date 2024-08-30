@@ -22,7 +22,7 @@ class EmployeeRepo extends EntityRepository {
         }
         
         $em = $this->getEntityManager();
-        $q = $em->createQuery('SELECT e FROM '.Employee::class.' e ');
+        $q = $em->createQuery('SELECT e FROM '.Employee::class.' e ORDER BY e.surname ASC');
         $q->setFirstResult($offset);
         $q->setMaxResults($max_results);
 

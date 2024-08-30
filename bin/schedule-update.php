@@ -40,7 +40,35 @@ function getTextFromRun($element) {
             $runtext .= $child->getContent();
         }
     }
-    return $runtext;
+
+    // Иногда в таблице встречается такое, что латинские буквы выдаются за
+    // русские. Типа С, А, Е. В таком случае заменяем так чтобы было всё на
+    // русском.
+
+    // Массив перевода. Слева английский, справа русский
+    $transliteration = [
+        'A' => 'А',
+        'E' => 'Е',
+        'K' => 'К',
+        'M' => 'М',
+        'H' => 'Н',
+        'O' => 'О',
+        'P' => 'Р',
+        'C' => 'С',
+        'T' => 'Т',
+        'Y' => 'У',
+        'X' => 'Х',
+        'a' => 'а',
+        'b' => 'б',
+        'e' => 'е',
+        'o' => 'о',
+        'p' => 'р',
+        'c' => 'с',
+        'y' => 'у',
+        'x' => 'х'
+    ];
+
+    return strtr($runtext, $transliteration);
 }
 
 // Возвращает true если данная $string - название группы
@@ -56,13 +84,46 @@ function isGroupName($string) {
     return true;
 }
 
+// Разбирает данные деталей проведения пары. Возвращает в формате
+// [['Фамилия препода', 'Место проведения'], [...]]
+// И Фамилия и место могут быть null.
+function handleConductionData($celltext) {
+    // Если это все, что есть - то принимаем меры...
+    if ($celltext === 'спорт зал') {
+        return [[null, 'спорт зал']];
+    }
+
+    $details = explode('/', $celltext);
+    $output = [];
+
+    foreach ($details as $detail) {
+        // Формат: "фамилия преподавателя" "место проведения"
+        // Либо: "фамилия преподавателя"
+        $parts = explode(" ", $detail);
+
+        if (count($parts) === 1) {
+            // Есть только фамилия, за исключением случаев, описанных в начале
+            // функции
+            $teacher = $parts[0];
+            $place = null;
+        } else {
+            $teacher = $parts[0];
+            $place = $parts[1];
+        }
+
+        $output[] = [$teacher, $place];
+    }
+
+    return $output;
+}
+
 // Парсить неактуальные даты?
 if ($argv[2] === '--parse-irrelevant') {
     $parse_irrelevant = true;
 } else if ($argv[2] === '--no-parse-irrelevant') {
     $parse_irrelevant = false;
 } else {
-    err('Второй аргумент не распознан.');
+    err('Второй аргумент не распознан. Допустимые значения: --parse-irrelevant, --no-parse-irrelevant');
     exit();
 }
 
@@ -371,42 +432,45 @@ foreach($dates as $date) {
                 $pair->setPairName($pair_name_obj);
                 $em->persist($pair);
             
-                // Разбор деталей проведения
-                $details = explode('/', $teacher_data);
-                foreach ($details as $detail) {
-                    // Формат: "фамилия преподавателя" "место проведения"
-                    // Либо: "фамилия преподавателя"
-                    $parts = explode(" ", $detail);
-                    
-                    $employee = $em
-                    ->getRepository(Entities\Employee::class)
-                    ->findOneBy(['surname' => $parts[0]]);
-                    if ($employee === null) {
-                        err("Преподаватель {$parts[0]} не найден!");
-                        adminNotify(
-                            "[schedule-update.php]Преподаватель {$parts[0]} не найден, обновление расписания завершено немедленно\\.\n".
-                            "Примите меры"
+                // -- Разбор деталей проведения --
+                $conduction_details = handleConductionData($teacher_data);
+                $employee_repo = $em->getRepository(Entities\Employee::class);
+                $place_repo = $em->getRepository(Entities\Place::class);
+
+                foreach ($conduction_details as $detail) {
+
+                    if ($detail[0] == null) {
+                        $employee = null;
+                    } else {
+                        $employee = $employee_repo->findOneBy(
+                            ['surname' => $detail[0]]
                         );
-                        exit();
+
+                        // Если после поиска препода мы его не нашли то
+                        // это повод остановить процесс
+                        if ($employee === null) {
+                            err("Преподаватель {$detail[0]} не найден!");
+                            adminNotify(
+                                "[schedule-update.php] Преподаватель {$detail[0]} не найден, обновление расписания остановлено."
+                            );
+                            exit();
+                        }
                     }
-                    
-                    if (count($parts) === 1) {
-                        // Есть только фамилия
+
+                    if ($detail[1] === null) {
                         $place = null;
                     } else {
-                        $place = $em
-                            ->getRepository(Entities\Place::class)
-                            ->findOneBy(['name' => $parts[1]]);
-                        
+                        $place = $place_repo->findOneBy(['name' => $detail[1]]);
+                            
                         if ($place === null) {
                             // Места нет, создаём
                             $place = new Entities\Place();
-                            $place->setName($parts[1]);
+                            $place->setName($detail[1]);
                             $em->persist($place);
                             $em->flush();
                         }
                     }
-                    
+
                     $conduction_detail = new Entities\PairConductionDetail();
                     $conduction_detail->setEmployee($employee);
                     $conduction_detail->setPlace($place);
