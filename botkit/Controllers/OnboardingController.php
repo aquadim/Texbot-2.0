@@ -84,7 +84,8 @@ class OnboardingController extends Controller {
             $m->setKeyboard(new SelectEmployeeKeyboard(
                 $paginator,
                 CallbackType::SelectedEmployeeForRegister,
-                0
+                0,
+                $this->d->getPlatformDomain()
             ));
         }
 

@@ -113,7 +113,8 @@ class UtilController extends Controller {
         $m->setKeyboard(new SelectEmployeeKeyboard(
             $paginator,
             CallbackType::SelectedEmployeeForRasp,
-            0
+            0,
+            $this->d->getPlatformDomain()
         ));
 
         $this->reply($m);
@@ -128,7 +129,8 @@ class UtilController extends Controller {
         $m->setKeyboard(new SelectEmployeeKeyboard(
             $paginator,
             CallbackType::from($goal),
-            $offset
+            $offset,
+            $this->d->getPlatformDomain()
         ));
 
         $this->editAssociatedMessage($m);
@@ -157,7 +159,8 @@ class UtilController extends Controller {
             $m->setKeyboard(new SelectEmployeeKeyboard(
                 $paginator,
                 CallbackType::SelectedEmployeeForNewAccountType,
-                0
+                0,
+                $this->d->getPlatformDomain()
             ));
 
             $this->reply($m);
