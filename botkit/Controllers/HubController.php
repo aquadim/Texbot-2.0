@@ -269,6 +269,9 @@ class HubController extends Controller {
         // -- Вычисление разницы между "сейчас" и временем следующей пары --
         $time_diff = $pair->getTime()->diff($now);                
         $time_diff_text = $time_diff->h.' ч. '.$time_diff->i.' м. ';
+        if ($time_diff->d > 0) {
+            $time_diff_text = $time_diff->d.' д. '.$time_diff_text;
+        }
 
         // -- Вывод --
         $out_text =
