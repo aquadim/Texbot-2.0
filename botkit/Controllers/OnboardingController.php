@@ -42,6 +42,12 @@ class OnboardingController extends Controller {
     
     // Первое взаимодействие
     public function welcome() {
+        $user_ent = $this->u->getEntity();
+        if ($user_ent->getAccountType() != 0) {
+            $this->replyText("Ты уже зарегистрирован");
+            return;
+        }
+        
         $this->replyText("Привет, я - Техбот. Моя задача - облегчить твою жизнь, но, для начала, мне нужно задать несколько вопросов");
         
         $m = M::create("Ознакомься с условиями использования прежде чем использовать мои функции");

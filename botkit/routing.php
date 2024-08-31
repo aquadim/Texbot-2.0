@@ -51,6 +51,7 @@ Bot::onText("Звонки", 'HubController@bellsSchedule', State::Hub);
 Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
 
 // Команды
+Bot::onCommand("/start", 'OnboardingController@welcome');
 Bot::onCommand("/hub", 'HubController@hub');
 Bot::onCommand("/rasp", 'HubController@schedule');
 Bot::onCommand("/grades", 'HubController@grades');
@@ -58,6 +59,7 @@ Bot::onCommand("/next", 'HubController@nextPair');
 Bot::onCommand("/bells", 'HubController@bellsSchedule');
 Bot::onCommand("/profile", 'HubController@showProfile');
 Bot::onCommand("/report", 'UtilController@reportProblem');
+Bot::onCommand("/terms", 'TOSController@showTos');
 
 // Ввод кабинета для просмотра его занятости
 Bot::whenUserInState(State::EnterCabinetLocationForRasp, 'ScheduleController@showDateForCabinetRasp');

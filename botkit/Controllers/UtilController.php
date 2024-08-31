@@ -142,7 +142,7 @@ class UtilController extends Controller {
         // Устанавливаем неопределённый тип аккаунта пока пользователь
         // не введёт все данные
         $user_obj = $this->u->getEntity();
-        $user_obj->setAccountType(0);
+        $user_obj->setAccountType(3);
         $this->u->setState(State::NoResponse);
 
         $m = M::create("Начинаем обновление твоего аккаунта!");

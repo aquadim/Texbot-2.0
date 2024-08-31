@@ -11,6 +11,7 @@ use BotKit\Drivers\VkComDriver;
 use BotKit\Drivers\TelegramOrgDriver;
 
 Bot::loadDriver(new VkComDriver());
+Bot::loadDriver(new TelegramOrgDriver());
 // Нельзя редактировать дальше
 
 Bot::onLoadingFinished();

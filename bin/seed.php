@@ -12,6 +12,8 @@ $em = Database::getEM();
 // Платформы
 $vk_platform = new Entities\Platform("vk.com");
 $em->persist($vk_platform);
+$tg_platform = new Entities\Platform("telegram.org");
+$em->persist($tg_platform);
 
 // Группы
 $first_course_year = $argv[1]; // Год поступления первого курса

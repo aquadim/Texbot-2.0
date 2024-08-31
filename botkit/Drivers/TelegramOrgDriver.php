@@ -35,44 +35,78 @@ class TelegramOrgDriver implements IDriver {
 
     // Домен
     private static string $domain = "telegram.org";
-    
-    // API версия
-    private string $api_version = "5.199";
-    
-    // Это запрос подтверждения сервера?
-    private bool $request_is_confirmation;
 
     // JSON данные полученного POST запроса
     private array $post_body;
 
+    // Текущее событие
+    protected IEvent $current_event;
+
+    // Чат текущего события
+    protected IChat $current_chat;
+    
     // Данные текущего пользователя из POST запроса
     // https://core.telegram.org/bots/api#user
-    protected array $current_user;
-    
-    protected IEvent $current_event;
+    protected array $current_user_http;
+
+    // Объект поля из POST запроса
+    protected array $field_obj_http = [];
+
+    // Название поля, которое заполнено в событии кроме update_id
+    // Перечисление полей: https://core.telegram.org/bots/api#update
+    protected string $field_name;
+
+    // Тип поля, которое заполнено в событии кроме update_id
+    // Перечисление типов https://core.telegram.org/bots/api#available-types
+    protected string $field_type;
+
+    // Текст сообщения события (если есть)
+    protected string $msg_text;
+
+    // ID сообщения события (если есть)
+    protected ?int $msg_id;
     
     // Выполняет метод API
+    // https://core.telegram.org/bots/api#making-requests
     public function execApiMethod(string $method, array $fields) : ?array {
-        $fields["v"] = $this->api_version;
-        $fields["access_token"] = $_ENV["vkcom_apikey"];
-        $post_fields = http_build_query($fields);
-        
+        $fields['method'] = $method;
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://api.vk.com/method/".$method);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+        curl_setopt(
+            $ch,
+            CURLOPT_URL,
+            "https://api.telegram.org/bot".$_ENV['telegramorg_apikey'].'/'
+        );
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
         $output = curl_exec($ch);
         curl_close($ch);
+
+        $http_code = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
+        if ($http_code >= 500) {
+            // Что то с телеграммом, игнорируем запрос
+            exit();
+        }
+
+        if ($http_code == 401) {
+            // TODO: выбросить исключение
+        }
         
-        return json_decode($output, true);
+        $response = json_decode($output, true);
+        if (!$response['ok']) {
+            // TODO: выбросить исключение
+        }
+
+        return $response;
     }
 
     #region IDriver
     public function forThis() : bool {
         $data = json_decode(file_get_contents('php://input'), true);
-
-        file_put_contents(__DIR__ . '/message.txt', print_r($data, true));
         
         if ($data === null) {
             return false;
@@ -85,183 +119,58 @@ class TelegramOrgDriver implements IDriver {
     }
 
     public function getUserIdOnPlatform() : string {
-        switch ($this->post_body["type"]) {
-            case "message_new":
-            case "message_edit":
-            case "message_typing_state":
-                return $this->post_body["object"]["message"]["from_id"];
-            
-            case "message_allow":
-            case "message_deny":
-            case "message_event":
-                return $this->post_body["object"]["user_id"];
-            
-            case "confirmation":
-            default:
-                // Запрос отправляет не пользователь, а сам ВКонтакте
-                // Говорим что это псевдо-пользователь с ID -1
-                return -1;
-        }
+        return $this->current_user_http['id'];
     }
     
     public function getUserName($id = null) : string {
-        $user = $this->execApiMethod(
-            "users.get",
-            ["user_ids" => $id ? $id : $this->getUserIdOnPlatform()]
-        )["response"][0];
-        return $user["first_name"] . " " . $user["last_name"];
+        return $this->current_user_http['first_name'];
     }
     
     public function getNickName($id = null) : string {
-        $user = $this->execApiMethod("users.get",
-        [
-            "user_ids" => $id ? $id : $this->getUserIdOnPlatform(),
-            "fields" => "domain"
-        ])["response"][0];
-        return $user["domain"];
+        if (isset($this->current_user_http['username'])) {
+            return $this->current_user_http['username'];
+        } else {
+            return $this->getUserName();
+        }
     }
 
     public function getEvent(UserModel $user_model) : IEvent {
+        // https://core.telegram.org/bots/api#update
         $event_id = $this->post_body['update_id'];
-        $u = $this->post_body; // https://core.telegram.org/bots/api#update
-
-        // Определён ли тип события
-        $type_known = false;
-
-        // Какое поле заполнено в объекте помимо update_id (название)
-        // Перечисление полей: https://core.telegram.org/bots/api#update
-        $field = null;
-
-        // Объект заполненного поля
-        $field_obj = null;
-
-        // Тип второго поля
-        // Перечисление типов https://core.telegram.org/bots/api#available-types
-        $field_type = null;
-
-        // Это текстовое сообщение?
-        $is_text_msg = false;
-
-        // Это событие обратного вызова?
-        $is_callback = false;
-
-        // Текст сообщения если текущее событие - текстовое сообщение
-        $msg_text = '';
-
-        // ID сообщения если есть
-        $msg_id = null;
-
-        if (isset($u['message']) {
-            $field = 'message';
-            $is_text_msg = true;
-            $type_known = true;
-        }
-
-        if (!$type_known && isset($u['callback_query'])) {
-            $field = 'callback_query';
-            $is_callback = true;
-            $type_known = true;
-        }
-
-        if ($type_known) {
-            $field_obj = $u[$field];
-        }
-
-        // На основании названия заполненного поля определяем его тип
-        switch ($field) {
-            case 'message':
-                $field_type = 'Message';
-                break;
-
-            case 'callback_query':
-                $field_type = 'CallbackQuery';
-                break;
-
-            default:
-                break;
-        }
-
-        // Определяем пользователя платформы
-        switch ($field_type) {
-            case 'Message':
-            case 'CallbackQuery':
-                $this->current_user = $field_obj['from'];
-                break;
-
-            default:
-                break;
-        }
-
-        // Определяем чат платформы
-        // 1. Получаем объект чата https://core.telegram.org/bots/api#chat
-        switch ($field_type) {
-            case 'Message':
-                $chat_http = $field_obj['chat'];
-                break;
-            case 'CallbackQuery':
-                $chat_instance = $field_obj['chat_instance'];
-                // чё это такое
-                break;
-
-            default:
-                break;
-        }
-
-        switch ($chat_http['type']) {
-            case 'private':
-                // Из чата с пользователем
-                $chat_obj = new DirectChat($chat_http['id']);
-                break;
-
-            case 'group':
-            case 'supergroup':
-            case 'channel':
-                // Групповой чат
-                $chat_obj = new GroupChat($chat_http['id']);
-                break;
-
-            default:
-                // Неизвестный тип чата. Считаем что с пользователем
-                $chat_obj = new DirectChat($chat_http['id']);
-                break;
-        }
-
-        // Определяем текст и ID сообщения
-        switch ($field_type) {
-            case 'Message':
-                $msg_text = $field_obj['text'];
-                $msg_id = $field_obj['message_id'];
-                break;
-            case 'CallbackQuery':
-                $msg_text = '';
-                $msg_id = $field_obj['message'];
-            default:
-                break;
-        }
 
         // Строим объект события
-        if ($is_text_msg) {
+        switch($this->field_type) {
+        case 'Message':
             $event = new TextMessageEvent(
                 $event_id,
-                $msg_id,
+                $this->msg_id,
                 $user_model,
-                $chat_obj,
-                $msg_text,
+                $this->current_chat,
+                $this->msg_text,
                 []
             );
-        } else if ($is_callback) {
-            $payload = $field_obj['data'];
+            break;
+
+        case 'CallbackQuery':
+            // "Запрос получил"
+            $this->execApiMethod('answerCallbackQuery', [
+                'callback_query_id' => $this->field_obj_http['id']
+            ]);
             
+            $payload = json_decode($this->field_obj_http['data'], true);
             $event = new CallbackEvent(
                 $event_id,
-                $msg_id,
-                $field_obj['id'],
+                $this->msg_id,
+                $this->field_obj_http['id'],
                 $user_model,
-                $chat_obj,
-                $msg_text,
+                $this->current_chat,
                 CallbackType::from($payload["type"]),
                 $payload["data"]
             );
+            break;
+
+        default:
+            break;
         }
 
         $this->current_event = $event;
@@ -306,6 +215,14 @@ class TelegramOrgDriver implements IDriver {
     }
     
     public function editMessageOfCurrentEvent(IMessage $msg) : void {
+        // 1. Обновляем текст
+        $new_text = $msg->getText();
+        
+        $params = [
+            "chat_id" => $chat->getIdOnPlatform(),
+            "text" => $msg->getText()
+        ];
+
         $attachment_strings = $this->getAttachmentStrings($msg->getPhotos());
         $keyboard_string = $this->getKeyboardString($msg->getKeyboard());
         $reply_to_string = $this->getReplyToString($msg);
@@ -326,25 +243,141 @@ class TelegramOrgDriver implements IDriver {
     }
 
     public function sendToChat(IChat $chat, IMessage $msg) : void {
-        $attachment_strings = $this->getAttachmentStrings($msg->getPhotos());
-        $keyboard_string = $this->getKeyboardString($msg->getKeyboard());
-        $reply_to_string = $this->getReplyToString($msg);
+        $params = [
+            "chat_id" => $chat->getIdOnPlatform(),
+            "text" => $msg->getText()
+        ];
+
+        $kb = $msg->getKeyboard();
+        if ($kb !== null) {
+            $keyboard_markup = $this->getKeyboardMarkup($kb);
+            $params['reply_markup'] = $keyboard_markup;
+        }
         
-        $response = $this->execApiMethod("messages.send",
-        [
-            "peer_ids" => $chat->getIdOnPlatform(),
-            "random_id" => 0,
-            "message" => $msg->getText(),
-            "reply_to" => $reply_to_string,
-            "attachment" => implode(",", $attachment_strings),
-            "keyboard" => $keyboard_string
-        ]);
-        
-        $msg->setId(strval($response["response"][0]["conversation_message_id"]));
+        $response = $this->execApiMethod("sendMessage", $params);
+
+        if (!$response['ok']) {
+            // TODO
+            $this->showContent('error response', $response);
+        }
+
+        $msg->setId($response['result']['message_id']);
         $msg->setChat($chat);
     }
     
-    public function onSelected() : void {}
+    public function onSelected() : void {
+        http_response_code(200);
+        flush();
+
+        #region Определяем какое поле заполнено кроме update_id
+        // О каких полях драйвер знает
+        $known_field_names = ['message', 'callback_query'];
+
+        // Найдено ли поле которое мы знаем?
+        $field_found = false;
+        foreach ($known_field_names as $field_name) {
+            if (isset($this->post_body[$field_name])) {
+                $this->field_name = $field_name;
+                $field_found = true;
+                break;
+            }
+        }
+
+        // Объект поля из POST запроса
+        $this->field_obj_http = $this->post_body[$this->field_name];
+
+        if (!$field_found) {
+            // TODO: чёто сделать
+        }
+        #endregion
+
+        #region На основании названия заполненного поля определяем его тип
+        switch ($this->field_name) {
+        case 'message':
+            $this->field_type = 'Message';
+            break;
+
+        case 'callback_query':
+            $this->field_type = 'CallbackQuery';
+            break;
+
+        default:
+            // сюда не дойдет, по идее
+            break;
+        }
+        #endregion
+
+        #region Определяем пользователя платформы
+        switch ($this->field_type) {
+        case 'Message':
+        case 'CallbackQuery':
+            $this->current_user_http = $this->field_obj_http['from'];
+            break;
+
+        default:
+            break;
+        }
+        #endregion
+
+        #region Определяем чат из которого было отправлено сообщение
+        // 1. Пытаемся найти объект чата, описанный в
+        // https://core.telegram.org/bots/api#chat
+        $chat_object_exists = false;
+
+        switch ($this->field_type) {
+        case 'Message':
+            $chat_object = $this->field_obj_http['chat'];
+            $chat_object_exists = true;
+            break;
+        case 'CallbackQuery':
+            $chat_object = $this->field_obj_http['message']['chat'];
+            $chat_object_exists = true;
+            break;
+
+        default:
+            break;
+        }
+
+        if ($chat_object_exists) {
+            // 2.1 По спецификации телеграмма создаём объекты чатов
+            switch ($chat_object['type']) {
+            case 'private':
+                // Из чата с пользователем
+                $this->current_chat = new DirectChat($chat_object['id']);
+                break;
+
+            case 'group':
+            case 'supergroup':
+            case 'channel':
+                // Групповой чат
+                $this->current_chat = new GroupChat($chat_object['id']);
+                break;
+
+            default:
+                // Неизвестный тип чата. Считаем что с пользователем
+                $this->current_chat = new DirectChat($chat_object['id']);
+                break;
+            }
+        }
+        #endregion
+
+        #region Определяем текст и ID сообщения
+        switch ($this->field_type) {
+        case 'Message':
+            $this->msg_text = $this->field_obj_http['text'];
+            $this->msg_id = (int)$this->field_obj_http['message_id'];
+            break;
+        case 'CallbackQuery':
+            $this->msg_text = '';
+            $this->msg_id = (int)$this->field_obj_http['message']['message_id'];
+            break;
+        default:
+            $this->msg_text = '';
+            $this->msg_id = null;
+            break;
+        }
+        #endregion
+    }
 
     public function onProcessStart() : void {}
 
@@ -357,18 +390,29 @@ class TelegramOrgDriver implements IDriver {
         ob_start();
         var_dump($variable);
         $info = ob_get_clean();
-        $info = "<h1>$label</h1>".$info;
+        $html =
+        "<!DOCTYPE html>".
+        "<html>".
+            "<head>".
+                "<title>Информация о ".$label."</title>".
+                "<meta charset='utf-8'>".
+                "<style>#info{font-size:1.25rem}</style>".
+            "</head>".
+            "<body>".
+                "<h1>".$label."</h1>".
+                "<div id='info'>".$info."</div>".
+            "</body>".
+        "</html>";
         
         $filename = uniqid(rand(), true) . '.html';
         $filename_abs = public_dir.'/dumps/'.$filename;
         
-        file_put_contents($filename_abs, $info);
+        file_put_contents($filename_abs, $html);
         
-        $this->execApiMethod("messages.send",
+        $this->execApiMethod("sendMessage",
         [
-            "peer_id" => $this->getUserIdOnPlatform(),
-            "random_id" => 0,
-            "message" => "DUMP: ".$label.": https://vpmt.ru/callback/test/dumps/".$filename
+            "chat_id" => $this->getUserIdOnPlatform(),
+            "text" => "DUMP: ".$label.": https://vpmt.ru/callback/test/dumps/".$filename
         ]);
     }
 
@@ -377,21 +421,19 @@ class TelegramOrgDriver implements IDriver {
     }
     
     public static function getKeyboardMarkup(IKeyboard $keyboard) : string {
-        // TODO:
-        // URL кнопок в строке может быть максимум две, обработать
         
         if (is_a($keyboard, ClearKeyboard::class)) {
             // Очищающая клавиатура
-            return "{\"buttons\":[]}";
+            return json_encode(['remove_keyboard' => true]);
         }
         
         $object = [];
         
         if (is_a($keyboard, InlineKeyboard::class)) {
-            $object["inline"] = true;
+            $buttons_key = 'inline_keyboard';
         } else {
-            $object["inline"] = false;
-            $object["one_time"] = $keyboard->isOneTime();
+            $buttons_key = 'keyboard';
+            $object["one_time_keyboard"] = $keyboard->isOneTime();
         }
         
         $layout = $keyboard->getLayout();
@@ -400,166 +442,33 @@ class TelegramOrgDriver implements IDriver {
             $buttons_row = [];
             
             foreach ($row as $button) {
-                
-                $can_set_color = true;
-                $button_obj = [];
-                
                 if (is_a($button, TextKeyboardButton::class)) {
                     // Это обычная текстовая кнопка
-                    $button_action = [
-                        "type" => "text",
-                        "label" => $button->getText()
+                    $button_obj = [
+                        "text" => $button->getText()
                     ];
                 } else if (is_a($button, CallbackButton::class)) {
                     // Кнопка обратного вызова
-                    $button_action = [
-                        "type" => "callback",
-                        "label" => $button->getText(),
-                        "payload" => json_encode($button->getValue())
+                    $button_obj = [
+                        "text" => $button->getText(),
+                        "callback_data" => json_encode($button->getValue()),
                     ];
                 } else if (is_a($button, UrlKeyboardButton::class)) {
                     // Кнопка-ссылка
-                    $button_action = [
-                        "type" => "open_link",
-                        "link" => $button->getValue(),
-                        "label" => $button->getText()
+                    $button_obj = [
+                        "text" => $button->getText(),
+                        "link" => $button->getValue()
                     ];
                     $can_set_color = false;
                 }
-                $button_obj["action"] = $button_action;
-                
-                if ($can_set_color) {
-                    switch ($button->getColor()) {
-                        case ButtonColor::Primary:
-                            $button_color = "primary";
-                            break;
-                        case ButtonColor::Secondary:
-                            $button_color = "secondary";
-                            break;
-                        case ButtonColor::Positive:
-                            $button_color = "positive";
-                            break;
-                        case ButtonColor::Negative:
-                            $button_color = "negative";
-                            break;
-                        default:
-                            $button_color = "primary";
-                            break;
-                    }
-                    $button_obj["color"] = $button_color;
-                }
-                
                 $buttons_row[] = $button_obj;
             }
             
             $buttons[] = $buttons_row;
         }
-        $object["buttons"] = $buttons;
+        $object[$buttons_key] = $buttons;
         
         return json_encode($object);
     }
     #endregion
-    
-    // Сохраняет в драйвер сервер для загрузки фотографий в сообщения
-    protected function getUploadURLPhoto() : string {
-        if (isset($this->uploadurl_photo)) {
-            return $this->uploadurl_photo;
-        }
-        
-        $response = $this->execApiMethod("photos.getMessagesUploadServer",
-        [
-            "public_id" => $_ENV["vkcom_public_id"]
-        ]);
-        $this->uploadurl_photo = $response["response"]["upload_url"];
-        return $this->uploadurl_photo;
-    }
-    
-    // Загружает изображение с диска. Возвращает строку, которую можно
-    // использовать как $attachment
-    protected function uploadImage($filename) : string {
-        // Получение URL для загрузки фото
-        $upload_url = $this->getUploadURLPhoto();
-        
-        $image = new \CURLFile($filename, 'image/jpeg');
-        
-        // Передача файла
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $upload_url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, ['file1' => $image]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        $response_afterupload = curl_exec($ch);
-    
-        $data_afterupload = json_decode($response_afterupload, true);
-        
-        $response = $this->execApiMethod("photos.saveMessagesPhoto",
-        [
-            'photo'=>$data_afterupload['photo'],
-            'server'=>$data_afterupload['server'],
-            'hash'=>$data_afterupload['hash'],
-        ]);
-        
-        return 
-            "photo".
-            $response['response'][0]['owner_id'].
-            '_'.
-            $response['response'][0]['id'];
-    }
-    
-    // Возвращает строку, которую можно использовать как поле
-    // attachment при отправке/редактирования сообщения
-    protected function getAttachmentStrings($photos) : array {
-        $attachment_strings = [];
-        
-        // photo
-        foreach ($photos as $photo) {
-            switch ($photo->getType()) {
-                case PhotoAttachmentType::FromFile:
-                    // Загружаем на сервер
-                    $attachment = $this->uploadImage($photo->getValue());
-                    $attachment_strings[] = $attachment;
-                    $photo->setId($attachment);
-                    break;
-                
-                case PhotoAttachmentType::FromURL:
-                    // Скачиваем и сохраняем
-                    $image_data = file_get_contents($photo->getValue());
-                    $filename = tempnam("/tmp", "botkit").'.jpeg';
-                    file_put_contents($filename, $image_data);
-                    
-                    // Загружаем как в FromFile
-                    $attachment = $this->uploadImage($filename);
-                    $attachment_strings[] = $attachment;
-                    $photo->setId($attachment);
-                    break;
-                
-                case PhotoAttachmentType::FromUploaded:
-                    $attachment_strings[] = $photo->getId();
-                    break;
-                
-                default:
-                    break;
-            }
-        }
-        
-        return $attachment_strings;
-    }
-    
-    // Возвращает строку, которую можно использовать как поле
-    // keyboard при отправке/редактирования сообщения
-    protected function getKeyboardString(?IKeyboard $kb_obj) : string {
-        if ($kb_obj == null) {
-            return "";
-        }
-        return self::getKeyboardMarkup($kb_obj);
-    }
-
-    // Возвращает строку -- id сообщения на которое отвечает сообщение
-    protected function getReplyToString(IMessage $msg) : string {
-        if ($msg->isReplying()) {
-            return $msg->getReplyId();
-        } else {
-            return "";
-        }
-    }
 }
