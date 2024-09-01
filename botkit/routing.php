@@ -69,8 +69,8 @@ Bot::whenUserInState(State::EnterJournalLogin, 'OnboardingController@loginEntere
 Bot::whenUserInState(State::EnterJournalPassword, 'OnboardingController@passwordEnteredShowHub');
 
 // Отчёт об ошибках
-Bot::whenUserInState(State::EnterReportProblem, 'OnboardingController@reportSteps');
-Bot::whenUserInState(State::EnterReportSteps, 'OnboardingController@reportFinish');
+Bot::whenUserInState(State::EnterReportProblem, 'UtilController@reportSteps');
+Bot::whenUserInState(State::EnterReportSteps, 'UtilController@reportFinish');
 
 // Первое взаимодействие
 Bot::whenUserInState(State::FirstInteraction, 'OnboardingController@welcome');

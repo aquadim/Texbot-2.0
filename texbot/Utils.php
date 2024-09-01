@@ -209,12 +209,12 @@ function getWaitMessage() : M {
 }}
 
 // Возвращает текст готовности результата
-// 30% что будет с рекламой
+// 15% что будет с рекламой
 if (!function_exists(__NAMESPACE__ . '\getDoneText')) {
 function getDoneText() : string {
     $text = 'Готово';
     
-    if (rand(0, 99) < 31) {
+    if (rand(0, 99) < 16) {
         $ads_messages = [
             'Посмотри как устроен Техбот - https://github.com/aquadim',
             'Новости от разработчика Техбота - https://t.me/aquadimcodes',

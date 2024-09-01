@@ -31,6 +31,8 @@ use BotKit\Models\KeyboardButtons\TextKeyboardButton;
 use BotKit\Models\KeyboardButtons\UrlKeyboardButton;
 use BotKit\Models\KeyboardButtons\CallbackButton;
 
+use CURLFile;
+
 class TelegramOrgDriver implements IDriver {
 
     // Домен
@@ -68,7 +70,10 @@ class TelegramOrgDriver implements IDriver {
     
     // Выполняет метод API
     // https://core.telegram.org/bots/api#making-requests
-    public function execApiMethod(string $method, array $fields) : ?array {
+    // $method - метод API
+    // $fields - поля запроса
+    // $json - делать ли запрос с помощью json?
+    public function execApiMethod(string $method, array $fields, bool $json) : ?array {
         $fields['method'] = $method;
 
         $ch = curl_init();
@@ -77,19 +82,27 @@ class TelegramOrgDriver implements IDriver {
             CURLOPT_URL,
             "https://api.telegram.org/bot".$_ENV['telegramorg_apikey'].'/'
         );
+
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+
+        if ($json) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+        } else {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: multipart/form-data"]);
+        }
+        
         $output = curl_exec($ch);
         curl_close($ch);
 
         $http_code = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
         if ($http_code >= 500) {
             // Что то с телеграммом, игнорируем запрос
-            exit();
+            return null;
         }
 
         if ($http_code == 401) {
@@ -155,17 +168,25 @@ class TelegramOrgDriver implements IDriver {
             // "Запрос получил"
             $this->execApiMethod('answerCallbackQuery', [
                 'callback_query_id' => $this->field_obj_http['id']
-            ]);
+            ], true);
             
-            $payload = json_decode($this->field_obj_http['data'], true);
+            // Разбираем наш формат сериализации
+            // ТИП~ПАРАМЕТРЫ
+            list($cb_type, $cb_params_string) = explode(
+                "~",
+                $this->field_obj_http['data'],
+                2
+            );
+            $cb_params = json_decode($cb_params_string, true);
+
             $event = new CallbackEvent(
                 $event_id,
                 $this->msg_id,
                 $this->field_obj_http['id'],
                 $user_model,
                 $this->current_chat,
-                CallbackType::from($payload["type"]),
-                $payload["data"]
+                CallbackType::from($cb_type),
+                $cb_params
             );
             break;
 
@@ -191,55 +212,25 @@ class TelegramOrgDriver implements IDriver {
             "reply_to" => $reply_to_string,
             "attachment" => implode(",", $attachment_strings),
             "keyboard" => $keyboard_string
-        ]);
+        ], true);
     }
     
     public function editMessage(IMessage $old, IMessage $new) : void {
-        $attachment_strings = $this->getAttachmentStrings($new->getPhotos());
-        $keyboard_string = $this->getKeyboardString($new->getKeyboard());
-        $reply_to_string = $this->getReplyToString($new);
-        
-        $this->execApiMethod("messages.edit",
-        [
-            "peer_id" => $old->getChat()->getIdOnPlatform(),
-            "random_id" => 0,
-            "message" => $new->getText(),
-            "attachment" => implode(",", $attachment_strings),
-            "reply_to" => $reply_to_string,
-            "keyboard" => $keyboard_string,
-            "conversation_message_id" => $old->getId()
-        ]);
-        
-        // Присваиваем новому сообщению старый ID
-        $new->setId($old->getId());
+        $this->editMessageInternal(
+            $old->getId(),
+            $old->getChat(),
+            $this->messageHasMedia($old),
+            $new
+        );
     }
     
     public function editMessageOfCurrentEvent(IMessage $msg) : void {
-        // 1. Обновляем текст
-        $new_text = $msg->getText();
-        
-        $params = [
-            "chat_id" => $chat->getIdOnPlatform(),
-            "text" => $msg->getText()
-        ];
-
-        $attachment_strings = $this->getAttachmentStrings($msg->getPhotos());
-        $keyboard_string = $this->getKeyboardString($msg->getKeyboard());
-        $reply_to_string = $this->getReplyToString($msg);
-        
-        $r = $this->execApiMethod("messages.edit",
-        [
-            "peer_id" => $this->current_event->getChat()->getIdOnPlatform(),
-            "random_id" => 0,
-            "message" => $msg->getText(),
-            "attachment" => implode(",", $attachment_strings),
-            "reply_to" => $reply_to_string,
-            "keyboard" => $keyboard_string,
-            "conversation_message_id" => $this->current_event->getAssociatedMessageId()
-        ]);
-        
-        // Присваиваем новому сообщению старый ID
-        $msg->setId($this->current_event->getAssociatedMessageId());
+        $this->editMessageInternal(
+            $this->current_event->getAssociatedMessageId(),
+            $this->current_chat,
+            false, // TODO: определить есть ли у сообщения события медиа
+            $msg
+        );
     }
 
     public function sendToChat(IChat $chat, IMessage $msg) : void {
@@ -254,7 +245,7 @@ class TelegramOrgDriver implements IDriver {
             $params['reply_markup'] = $keyboard_markup;
         }
         
-        $response = $this->execApiMethod("sendMessage", $params);
+        $response = $this->execApiMethod("sendMessage", $params, true);
 
         if (!$response['ok']) {
             // TODO
@@ -409,11 +400,10 @@ class TelegramOrgDriver implements IDriver {
         
         file_put_contents($filename_abs, $html);
         
-        $this->execApiMethod("sendMessage",
-        [
+        $this->execApiMethod("sendMessage", [
             "chat_id" => $this->getUserIdOnPlatform(),
             "text" => "DUMP: ".$label.": https://vpmt.ru/callback/test/dumps/".$filename
-        ]);
+        ], true);
     }
 
     public function getPlatformDomain() : string {
@@ -434,6 +424,7 @@ class TelegramOrgDriver implements IDriver {
         } else {
             $buttons_key = 'keyboard';
             $object["one_time_keyboard"] = $keyboard->isOneTime();
+            $object["resize_keyboard"] = true;
         }
         
         $layout = $keyboard->getLayout();
@@ -449,9 +440,15 @@ class TelegramOrgDriver implements IDriver {
                     ];
                 } else if (is_a($button, CallbackButton::class)) {
                     // Кнопка обратного вызова
+
+                    // Строим строку данных. Максимум 64 байт
+                    $button_data = $button->getValue();
+                    $callback_data = $button_data['type']->value.'~'.
+                    json_encode($button_data['data']);
+                    
                     $button_obj = [
                         "text" => $button->getText(),
-                        "callback_data" => json_encode($button->getValue()),
+                        "callback_data" => $callback_data,
                     ];
                 } else if (is_a($button, UrlKeyboardButton::class)) {
                     // Кнопка-ссылка
@@ -471,4 +468,168 @@ class TelegramOrgDriver implements IDriver {
         return json_encode($object);
     }
     #endregion
+
+    // Выполняет все необходимые действия по редактированию сообщения
+    protected function editMessageInternal(
+        string $message_id,
+        IChat $chat,
+        bool $old_message_has_media,
+        IMessage $new
+    ) : void {
+        $new_message_has_media = $this->messageHasMedia($new);
+
+        if ($new_message_has_media && !$old_message_has_media) {
+            // У нового сообщения есть медиа, а у старого нет
+            // Телеграм не поддерживает такое редактирование
+            // Пользователи могут указать в .env файле
+            // telegramorg_sendWhenEditNotPossible=true
+            // В таком случае драйвер пришлёт новое сообщение, вместо
+            // редактирования старого
+
+            if (!$_ENV['telegramorg_sendWhenEditNotPossible']) {
+                // Нельзя отправить, выбрасываем исключение
+                throw new \Exception("Can't edit this message");
+            }
+
+            // Определить метод api
+            $api_method = $this->getApiMethodToSendMessage($new);
+            $json_request = true;
+            $params = ['chat_id' => $chat->getIdOnPlatform()];
+
+            // Клавиатура
+            $kb = $new->getKeyboard();
+            if ($kb !== null) {
+                $params['reply_markup'] = $this->getKeyboardMarkup($kb);
+            }
+
+            // Текст
+            $params['caption'] = $new->getText();
+
+            if ($api_method == 'sendPhoto') {
+                $photos = $new->getPhotos();
+                $photo_attachment = $photos[0];
+
+                switch ($photo_attachment->getType()) {
+                case PhotoAttachmentType::FromFile:
+                    $params['photo'] = new CURLFile(
+                        realpath($photo_attachment->getValue()),
+                        null,
+                        'botkitupload'
+                    );
+                    $json_request = false;
+                    break;
+
+                case PhotoAttachmentType::FromUploaded:
+                case PhotoAttachmentType::FromURL:
+                    $params['photo'] = $photo_attachment->getValue();
+                    break;
+
+                default:
+                    break;
+                }
+            }
+
+            $r = $this->execApiMethod($api_method, $params, $json_request);
+
+            // Присваиваем изображению ID на платформе
+            $photo_attachment->setId(end($r['result']['photo'])['file_id']);
+        }
+
+        if (!$new_message_has_media && !$old_message_has_media) {
+            // Оба сообщения - обычные, текстовые
+            $params = [
+                'chat_id' => $chat->getIdOnPlatform(),
+                'message_id' => $message_id,
+                'text' => $new->getText()
+            ];
+            $kb = $new->getKeyboard();
+            if ($kb !== null) {
+                $params['reply_markup'] = $this->getKeyboardMarkup($kb);
+            }
+            $this->execApiMethod('editMessageText', $params, true);
+        }
+
+        if (!$new_message_has_media && $old_message_has_media) {
+            // В старом сообщении есть media, в новом нет
+            $params = [
+                'chat_id' => $chat->getIdOnPlatform(),
+                'message_id' => $message_id,
+                'caption' => $new->getText()
+            ];
+            $kb = $new->getKeyboard();
+            if ($kb === null) {
+                $params['reply_markup'] = $this->getKeyboardMarkup($kb);
+            }
+            $this->execApiMethod('editMessageCaption', $params, true);
+        }
+
+        if ($new_message_has_media && $old_message_has_media) {
+            $json_request = true;
+            $photos = $new->getPhotos();
+            $params = [
+                'chat_id' => $chat->getIdOnPlatform(),
+                'message_id' => $message_id
+            ];
+            if (count($photos) > 0) {
+                $photo = $photos[0];
+
+                switch ($photo->getType()) {
+                case PhotoAttachmentType::FromFile:
+                    $params['botkitupload'] = new CURLFile(
+                        realpath($photo->getValue()),
+                        null,
+                        'botkitupload'
+                    );
+                    $json_request = false;
+                    $media_string = 'botkitupload';
+                    break;
+
+                case PhotoAttachmentType::FromUploaded:
+                case PhotoAttachmentType::FromURL:
+                    $media_string = $photo->getValue();
+                    break;
+
+                default:
+                    break;
+                }
+                
+                $media_object = [
+                    'type' => 'photo',
+                    'media' => $media_string,
+                    'caption' => $new->getText()
+                ];
+            }
+            $params['media'] = json_encode($media_object);
+
+            // Клавиатура
+            $kb = $new->getKeyboard();
+            if ($kb === null) {
+                $params['reply_markup'] = $this->getKeyboardMarkup($kb);
+            }
+            
+            $this->execApiMethod('editMessageMedia', $params, true);
+            // TODO: установить ID платформы вложениям
+        }
+        
+        // Присваиваем новому сообщению старый ID
+        $new->setId($message_id);
+        $new->setChat($chat);
+    }
+
+    // Возвращает true если в сообщении есть медиа
+    protected function messageHasMedia(IMessage $msg) : bool {
+        return count($msg->getPhotos()) > 0;
+    }
+
+    // Определяет метод api который нужно использовать при отправке сообщения
+    protected function getApiMethodToSendMessage(IMessage $msg) : string {
+        $photos = $msg->getPhotos();
+
+        if (count($photos) == 1) {
+            // Одно изображение
+            return 'sendPhoto';
+        }
+
+        return 'sendMessage';
+    }
 }

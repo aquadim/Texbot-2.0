@@ -28,7 +28,7 @@ class ImageCache {
     private string $search;
 
     // Значение
-    #[ORM\Column(type: 'string', length: 64)]
+    #[ORM\Column(type: 'string', length: 256)]
     private string $value;
     
     // Дата создания
