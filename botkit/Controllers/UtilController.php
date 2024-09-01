@@ -200,9 +200,12 @@ class UtilController extends Controller {
         $em->persist($teacher);
 
         // Всё готово
-        $m = M::create("✅ Тип аккаунта обновлён, теперь ты - преподаватель");
-        $m->setKeyboard(new TeacherHubKeyboard());
-        $this->editAssociatedMessage($m);
+        $m1 = M::create("✅ Тип аккаунта обновлён, теперь ты - преподаватель");
+        $m2 = M::create("Переносим в главное меню...");
+        $m2->setKeyboard(new TeacherHubKeyboard());
+
+        $this->editAssociatedMessage($m1);
+        $this->reply($m2);
     }
     
     // Шаг 2 смены типа аккаунта на студента
@@ -226,9 +229,12 @@ class UtilController extends Controller {
         $em->persist($student);
 
         // Всё готово
-        $m = M::create("✅ Тип аккаунта обновлён, теперь ты - студент");
-        $m->setKeyboard(new StudentHubKeyboard());
-        $this->editAssociatedMessage($m);
+        $m1 = M::create("✅ Тип аккаунта обновлён, теперь ты - студент");
+        $m2 = M::create("Переносим в главное меню...");
+        $m2->setKeyboard(new StudentHubKeyboard());
+
+        $this->editAssociatedMessage($m1);
+        $this->reply($m2);
     }
 
     // Шаг 1: В чём проблема?

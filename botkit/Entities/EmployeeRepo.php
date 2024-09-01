@@ -16,6 +16,9 @@ class EmployeeRepo extends EntityRepository {
         case 'vk.com':
             $max_results = 6;
             break;
+        case 'telegram.org':
+            $max_results = 16;
+            break;
         default:
             $max_results = 6;
             break;

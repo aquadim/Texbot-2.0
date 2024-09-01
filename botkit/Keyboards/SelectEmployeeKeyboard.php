@@ -24,9 +24,11 @@ class SelectEmployeeKeyboard extends InlineKeyboard {
         switch ($platform) {
         case 'vk.com':
             $max_buttons_on_row = 3;
+            $per_page = 6;
             break;
         case 'telegram.org':
-            $max_buttons_on_row = 6;
+            $max_buttons_on_row = 4;
+            $per_page = 16;
             break;
         default:
             $max_buttons_on_row = 3;
@@ -50,7 +52,6 @@ class SelectEmployeeKeyboard extends InlineKeyboard {
             if ($buttons_added % $max_buttons_on_row == 0) {
                 $this->layout[] = $row;
                 $row = [];
-                $buttons_added = 0;
             }
         }
 
@@ -67,19 +68,19 @@ class SelectEmployeeKeyboard extends InlineKeyboard {
                 CallbackType::EmployeeSelectionPagination,
                 [
                     'goal' => $goal->value,
-                    'offset' => $offset - 6
+                    'offset' => $offset - $per_page
                 ],
                 ButtonColor::Secondary
             );
         }
 
-        if ($offset + 6 < count($paginator)) {
+        if ($offset + $per_page < count($paginator)) {
             $pagination_row[] = new CallbackButton(
                 "Вперёд ➡︎",
                 CallbackType::EmployeeSelectionPagination,
                 [
                     'goal' => $goal->value,
-                    'offset' => $offset + 6
+                    'offset' => $offset + $per_page
                 ],
                 ButtonColor::Secondary
             );
