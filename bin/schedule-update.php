@@ -280,6 +280,7 @@ foreach($dates as $date) {
     // Должно быть позже чем сейчас, но раньше чем через 4 дня
     if (($date > $date_relevancy || $date < $now) && $parse_irrelevant==false) {
         warning($date_text.' пропускается - т.к. дата не актуальна');
+        $counter++;
         continue;
     }
 
@@ -318,6 +319,8 @@ foreach($dates as $date) {
         }
         $data[] = $datarow;
     }
+
+    var_dump($data);
 
     // Настоящий парсинг таблицы
     $dataheight = count($data);
