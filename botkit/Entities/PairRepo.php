@@ -36,7 +36,8 @@ class PairRepo extends EntityRepository {
         'JOIN p.schedule s '.
         'JOIN s.college_group g '.
         'WHERE s.day=:date '.
-        'AND pcd.employee=:employee'
+        'AND pcd.employee=:employee '.
+        'ORDER BY p.time'
         );
 
         $query->setParameters([

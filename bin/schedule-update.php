@@ -320,8 +320,6 @@ foreach($dates as $date) {
         $data[] = $datarow;
     }
 
-    var_dump($data);
-
     // Настоящий парсинг таблицы
     $dataheight = count($data);
     $datawidth = count($data[0]);
