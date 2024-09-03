@@ -74,3 +74,5 @@ Bot::whenUserInState(State::EnterReportSteps, 'UtilController@reportFinish');
 
 // Первое взаимодействие
 Bot::whenUserInState(State::FirstInteraction, 'OnboardingController@welcome');
+
+Bot::whenUserInState(State::NoResponse, 'UtilController@checkIfRegistering');

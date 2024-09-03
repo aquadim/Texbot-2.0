@@ -58,8 +58,7 @@ class OnboardingController extends Controller {
         
         $this->replyText("Привет, я - Техбот. Моя задача - облегчить твою жизнь, но, для начала, мне нужно задать несколько вопросов");
         
-        $m = M::create("Ознакомься с условиями использования прежде чем использовать мои функции");
-        $m->setKeyboard(new TOSKeyboard());
+        $m = M::create("Условия использования: https://www.vpmt.ru/callback/test/terms.html");
         $this->reply($m);
         
         // Пользователь будет использовать клавиатуру для выбора ответов

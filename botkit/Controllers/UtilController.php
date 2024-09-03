@@ -299,4 +299,15 @@ class UtilController extends Controller {
         $m->setKeyboard($keyboard);
         $this->reply($m);
     }
+
+    // Если пользователь регистрируется
+    public function checkIfRegistering() {
+        $user_ent = $this->u->getEntity();
+        $acc_type = $user_ent->getAccountType();
+        if ($acc_type == 0 || $acc_type == 4) {
+            $this->replyText(
+            "Сейчас ты находишься в процессе регистрации. ".
+            "Ответь на все вопросы прежде чем использовать функции");
+        }
+    }
 }
