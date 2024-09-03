@@ -5,6 +5,7 @@ namespace BotKit\Drivers;
 
 use BotKit\Models\User as UserModel;
 use BotKit\Database;
+use function Texbot\adminNotify;
 
 use BotKit\Enums\PhotoAttachmentType;
 use BotKit\Enums\State;
@@ -433,16 +434,15 @@ class VkComDriver implements IDriver {
         // Получение URL для загрузки фото
         $upload_url = $this->getUploadURLPhoto();
         
-        $image = new \CURLFile($filename, 'image/jpeg');
-        
         // Передача файла
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $upload_url);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, ['file1' => $image]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, [
+            'photo' => new \CURLFile($filename)
+        ]);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        $response_afterupload = curl_exec($ch);
-    
+        $response_afterupload = curl_exec($ch); // содержит photo, server, hash
         $data_afterupload = json_decode($response_afterupload, true);
         
         $response = $this->execApiMethod("photos.saveMessagesPhoto",
@@ -451,6 +451,11 @@ class VkComDriver implements IDriver {
             'server'=>$data_afterupload['server'],
             'hash'=>$data_afterupload['hash'],
         ]);
+
+        if (!isset($response['response']) || $response === null) {
+            $this->sendToChat($this->current_event->getChat(), 'Произошла ошибка при загрузке фото, попробуй ещё раз позже');
+            throw new \Exception("No response when uploading photo");
+        }
         
         return 
             "photo".
