@@ -23,7 +23,7 @@ class GradesImagen extends GenericImagen {
         "body_perfect_odd" => [22, 158, 22],
         
         "body_fg" => [221, 221, 221],
-        "body_frame" => [80, 80, 80]
+        "body_frame" => [160, 160, 160]
     ];
     
     protected static int $t_body_line_height = 18;
