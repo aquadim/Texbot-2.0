@@ -33,6 +33,7 @@ class User {
     // 1 - студент
     // 2 - препод
     // 3 - переход между типом
+    // 4 - когда не зарегистрировался до конца
     #[ORM\Column(type: 'integer')]
     private int $account_type = 0;
 

@@ -43,8 +43,16 @@ class OnboardingController extends Controller {
     // Первое взаимодействие
     public function welcome() {
         $user_ent = $this->u->getEntity();
+
+        if ($user_ent->getAccountType() == 4) {
+            $this->replyText(
+            "Ты уже выбрал тип аккаунта. Ответь на вопросы до конца и затем, ".
+            "если потребуется, сможешь сменить свой тип аккаунта");
+            return;
+        }
+        
         if ($user_ent->getAccountType() != 0) {
-            $this->replyText("Ты уже зарегистрирован");
+            $this->replyText("Ты уже зарегистрирован. Показать главное меню: /hub");
             return;
         }
         
@@ -70,7 +78,6 @@ class OnboardingController extends Controller {
 
         if ($answer == "student") {
             $object = new Student();
-            $account_type = 1;
             
             // Отправить сообщение с выбором группы
             $m = M::create("На каком курсе сейчас учишься?");
@@ -80,7 +87,6 @@ class OnboardingController extends Controller {
 
         } else {
             $object = new Teacher();
-            $account_type = 2;
 
             // Показать клавиатуру выбора преподавателей
             $paginator = $em->getRepository(Employee::class)
@@ -96,7 +102,7 @@ class OnboardingController extends Controller {
         }
 
         $object->setUser($u_ent);
-        $u_ent->setAccountType($account_type);
+        $u_ent->setAccountType(4);
         $em->persist($object);
 
         $this->editAssociatedMessage($m);
@@ -105,12 +111,14 @@ class OnboardingController extends Controller {
     // Студент выбрал свою группу
     public function studentSelectedGroup($group_id) {
         // Найти студента, присвоить ему группу
+        $user_ent = $this->u->getEntity();
         $em = Database::getEm();
         $student = $em->getRepository(Student::class)->findOneBy(
-            ['user' => $this->u->getEntity()]
+            ['user' => $user_ent]
         );
         $group = $em->find(CollegeGroup::class, $group_id);
         $student->setGroup($group);
+        $user_ent->setAccountType(1);
         
         // Спросить нужно ли ввести оценки
         $m = M::create(
@@ -132,12 +140,14 @@ class OnboardingController extends Controller {
     // Препод выбрал связанного сотрудника
     public function teacherSelectedEmployee($employee_id) {
         // Найти препода, присвоить ему сотрудника
+        $user_ent = $this->u->getEntity();
         $em = Database::getEm();
         $teacher = $em->getRepository(Teacher::class)->findOneBy(
-            ['user' => $this->u->getEntity()]
+            ['user' => $user_ent]
         );
         $employee = $em->find(Employee::class, $employee_id);
         $teacher->setEmployee($employee);
+        $user_ent->setAccountType(2);
         
         // Это всё что нужно, переносим в хаб
         $this->replyWelcomeWithHub();

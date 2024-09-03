@@ -97,6 +97,7 @@ class HubController extends Controller {
         if (!$user_ent->isStudent()) {
             // Не студент? Значит не зарегистрирован
             $this->errorNotRegistered();
+            return;
         }
         
         $wait = getWaitMessage();
