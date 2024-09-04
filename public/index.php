@@ -12,6 +12,8 @@ use BotKit\Drivers\TelegramOrgDriver;
 
 Bot::loadDriver(new VkComDriver());
 Bot::loadDriver(new TelegramOrgDriver());
+
+define('texbot_terms_url', 'https://www.vpmt.ru/texbot/prod/terms.html');
 // Нельзя редактировать дальше
 
 Bot::onLoadingFinished();

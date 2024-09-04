@@ -11,6 +11,6 @@ class TOSController extends Controller {
     
     // Условия использования
     public function showTos() {
-        $this->replyText("Условия использования: https://www.vpmt.ru/callback/prod/terms.html");
+        $this->replyText("Условия использования: ".texbot_terms_url);
     }
 }
