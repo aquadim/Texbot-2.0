@@ -110,6 +110,11 @@ class TelegramOrgDriver implements IDriver {
         }
         
         $response = json_decode($output, true);
+
+        if ($response === null) {
+            throw new \Exception("Could not decode JSON: ".$output);
+        }
+        
         if (!$response['ok']) {
             // TODO: выбросить исключение
         }
@@ -247,11 +252,6 @@ class TelegramOrgDriver implements IDriver {
         
         $response = $this->execApiMethod("sendMessage", $params, true);
 
-        if (!$response['ok']) {
-            // TODO
-            $this->showContent('error response', $response);
-        }
-
         $msg->setId($response['result']['message_id']);
         $msg->setChat($chat);
     }
@@ -274,12 +274,12 @@ class TelegramOrgDriver implements IDriver {
             }
         }
 
+        if (!$field_found) {
+            throw new \Exception("Unknown update type: ".$field_name);
+        }
+
         // Объект поля из POST запроса
         $this->field_obj_http = $this->post_body[$this->field_name];
-
-        if (!$field_found) {
-            // TODO: чёто сделать
-        }
         #endregion
 
         #region На основании названия заполненного поля определяем его тип
