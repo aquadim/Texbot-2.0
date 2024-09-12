@@ -111,6 +111,11 @@ function handleConductionData($celltext) {
             $place = $parts[1];
         }
 
+        // HACK: 12 сен 2024
+        if ($teacher === 'Игнатьевка') {
+            $teacher = 'Игнатьева';
+        }
+
         $output[] = [$teacher, $place];
     }
 
