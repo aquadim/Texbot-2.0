@@ -67,6 +67,9 @@ class TelegramOrgDriver implements IDriver {
 
     // ID сообщения события (если есть)
     protected ?int $msg_id;
+
+    // Если в событии медиа?
+    protected bool $event_has_media;
     
     // Выполняет метод API
     // https://core.telegram.org/bots/api#making-requests
@@ -205,19 +208,7 @@ class TelegramOrgDriver implements IDriver {
     }
 
     public function sendDirectMessage(UserModel $user, IMessage $msg) : void {
-        $attachment_strings = $this->getAttachmentStrings($msg->getPhotos());
-        $keyboard_string = $this->getKeyboardString($msg->getKeyboard());
-        $reply_to_string = $this->getReplyToString($msg);
-        
-        $this->execApiMethod("messages.send",
-        [
-            "user_id" => $user->getIdOnPlatform(),
-            "random_id" => 0,
-            "message" => $msg->getText(),
-            "reply_to" => $reply_to_string,
-            "attachment" => implode(",", $attachment_strings),
-            "keyboard" => $keyboard_string
-        ], true);
+        // TODO
     }
     
     public function editMessage(IMessage $old, IMessage $new) : void {
@@ -233,7 +224,7 @@ class TelegramOrgDriver implements IDriver {
         $this->editMessageInternal(
             $this->current_event->getAssociatedMessageId(),
             $this->current_chat,
-            false, // TODO: определить есть ли у сообщения события медиа
+            $this->event_has_media,
             $msg
         );
     }
@@ -365,6 +356,18 @@ class TelegramOrgDriver implements IDriver {
         default:
             $this->msg_text = '';
             $this->msg_id = null;
+            break;
+        }
+        #endregion
+
+        #region Определяем есть ли вложения
+        switch ($this->field_type) {
+        case 'Message':
+        case 'CallbackQuery':
+            $this->event_has_media = isset($this->field_obj_http['message']['photo']);
+            break;
+        default:
+            $this->event_has_media = false;
             break;
         }
         #endregion
@@ -551,16 +554,24 @@ class TelegramOrgDriver implements IDriver {
 
         if (!$new_message_has_media && $old_message_has_media) {
             // В старом сообщении есть media, в новом нет
-            $params = [
-                'chat_id' => $chat->getIdOnPlatform(),
-                'message_id' => $message_id,
-                'caption' => $new->getText()
-            ];
-            $kb = $new->getKeyboard();
-            if ($kb === null) {
-                $params['reply_markup'] = $this->getKeyboardMarkup($kb);
+
+            if (!$_ENV['telegramorg_sendWhenEditNotPossible']) {
+                // Нельзя отправить, выбрасываем исключение
+                throw new \Exception("Can't edit this message");
             }
-            $this->execApiMethod('editMessageCaption', $params, true);
+
+            $params = [
+                "chat_id" => $chat->getIdOnPlatform(),
+                "text" => $new->getText()
+            ];
+
+            $kb = $new->getKeyboard();
+            if ($kb !== null) {
+                $keyboard_markup = $this->getKeyboardMarkup($kb);
+                $params['reply_markup'] = $keyboard_markup;
+            }
+        
+            $this->execApiMethod("sendMessage", $params, true);
         }
 
         if ($new_message_has_media && $old_message_has_media) {
