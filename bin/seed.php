@@ -58,11 +58,12 @@ foreach ($spec_names as $spec_name) {
 }
 $em->flush();
 
-// Семестры АВЕРС
 // Это первая строка в файле?
 $first_line = true;
+
 // Последний ID_PGROUP
 $last_csv_id = null;
+
 // Сколько раз эта группа попалась подряд
 $this_group_in_a_row = 1;
 

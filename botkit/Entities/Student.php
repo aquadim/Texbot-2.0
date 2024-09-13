@@ -65,7 +65,7 @@ class Student {
         return $this->avers_password;
     }
     
-    public function setPreferencedPeriod(Period $period) : void {
+    public function setPreferencedPeriod(?Period $period) : void {
         $this->preferenced_period = $period;
     }
     

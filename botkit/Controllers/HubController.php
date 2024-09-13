@@ -24,6 +24,7 @@ use BotKit\Keyboards\StudentProfileKeyboard;
 use BotKit\Keyboards\TeacherProfileKeyboard;
 use BotKit\Keyboards\SelectPeriodKeyboard;
 use BotKit\Keyboards\SelectDateKeyboard;
+use BotKit\Keyboards\AnotherPeriodKeyboard;
 
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
@@ -146,6 +147,7 @@ class HubController extends Controller {
             // Кэш найден! Отправляем сообщение
             $m = M::create(getDoneText());
             $m->addPhoto($cached);
+            $m->setKeyboard(new AnotherPeriodKeyboard());
             $this->edit($wait, $m);
             return;
         }
@@ -171,6 +173,7 @@ class HubController extends Controller {
         
         $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
+        $m->setKeyboard(new AnotherPeriodKeyboard());
         $this->edit($wait, $m);
         
         createCache(
@@ -462,12 +465,17 @@ class HubController extends Controller {
         );
         $group = $em->find(CollegeGroup::class, $group_id);
         $student->setGroup($group);
+        $student->setPreferencedPeriod(null);
         
         // Переход в главное меню
         $this->u->setState(State::Hub);
+
         $m = M::create("Группа обновлена, наслаждайся!");
-        $m->setKeyboard(new StudentHubKeyboard());
         $this->editAssociatedMessage($m);
+
+        $m = M::create("Возвращаем тебя в главное меню...");
+        $m->setKeyboard(new StudentHubKeyboard());
+        $this->reply($m);
     }
     
     // Смена семестра 1
@@ -481,6 +489,11 @@ class HubController extends Controller {
         $periods = $em->getRepository(Period::class)->findBy(
             ['group' => $group]
         );
+
+        if (count($periods) === 0) {
+            $this->replyText("В настоящее время ни один семестр не доступен для выбора");
+            return;
+        }
         
         $m = M::create("Выбери новый семестр");
         $m->setKeyboard(new SelectPeriodKeyboard($periods));

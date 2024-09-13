@@ -116,7 +116,7 @@ class TelegramOrgDriver implements IDriver {
         }
         
         if (!$response['ok']) {
-            // TODO: выбросить исключение
+            throw new \Exception("API error response: ".$output);
         }
 
         return $response;
