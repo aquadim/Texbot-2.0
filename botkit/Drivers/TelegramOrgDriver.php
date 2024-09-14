@@ -251,6 +251,15 @@ class TelegramOrgDriver implements IDriver {
         http_response_code(200);
         flush();
 
+        // Проверка заголовка секретной строки
+        if (!isset($_SERVER["HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN"])) {
+            exit();
+        }
+        
+        if ($_SERVER["HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN"] != $_ENV['telegramorg_secret']) {
+            exit();
+        }
+
         #region Определяем какое поле заполнено кроме update_id
         // О каких полях драйвер знает
         $known_field_names = ['message', 'callback_query'];

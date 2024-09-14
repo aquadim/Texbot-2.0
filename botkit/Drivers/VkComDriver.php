@@ -88,6 +88,7 @@ class VkComDriver implements IDriver {
                 return false;
             }
         }
+        
         return true;
     }
 
@@ -298,7 +299,18 @@ class VkComDriver implements IDriver {
         $msg->setChat($chat);
     }
     
-    public function onSelected() : void {}
+    public function onSelected() : void {
+        // Проверка секретного токена
+        if (!isset($this->post_body['secret'])) {
+            exit();
+        }
+
+        $this->showContent('post', $this->post_body);
+        
+        if ($this->post_body['secret'] != $_ENV['vkcom_secret']) {
+            exit();
+        }
+    }
 
     public function onProcessStart() : void {}
 
