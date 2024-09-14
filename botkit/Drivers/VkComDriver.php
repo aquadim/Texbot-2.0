@@ -304,8 +304,6 @@ class VkComDriver implements IDriver {
         if (!isset($this->post_body['secret'])) {
             exit();
         }
-
-        $this->showContent('post', $this->post_body);
         
         if ($this->post_body['secret'] != $_ENV['vkcom_secret']) {
             exit();
