@@ -29,6 +29,12 @@ function err($text) {
     echo "\033[91m".$text."\033[0m\n";
 }
 
+function stopWithError($text) {
+    err($text);
+    adminNotify("[schedule-update.php]: ".$text);
+    exit();
+}
+
 // Возвращает текст из run элемента
 function getTextFromRun($element) {
     $children = $element->getElements();
@@ -84,9 +90,71 @@ function isGroupName($string) {
     return true;
 }
 
+// В случае, если в БД не обнаружен преподаватель, ищем во всех фамилиях
+// преподавателей наиболее похожую строку с помощью расстояния Левенштейна
+// Если найдено несколько подходящих преподавателей, скрипт завершается ошибкой
+function findClosestTeacher(
+    $surname,
+    $all_employees
+) : Entities\Employee | false
+{
+    // Наименьшее расстояние левенштейна
+    $least_distance = 9999;
+
+    // Расстояние, выше которого строки даже не проверяем
+    $threshold = 4;
+
+    // Расстояние: совпадение
+    $distances = [];
+    for ($i = 1; $i <= $threshold; $i++) {
+        $distances[$i] = [];
+    }
+
+    foreach ($all_employees as $employee) {
+        $char_map = array();
+        $s1 = utf8_to_extended_ascii($employee->getSurname(), $char_map);
+        $s2 = utf8_to_extended_ascii($surname, $char_map);
+        $distance = levenshtein($s1, $s2);
+
+        if ($distance > $threshold) {
+            continue;
+        }
+
+        $distances[$distance][] = $employee;
+    }
+
+    // Ищем совпадения с самых похожих строк до менее похожих
+    for ($i = 1; $i <= $threshold; $i++) {
+        $captured = count($distances[$i]);
+
+        if ($captured == 0) {
+            // Нет совпадений с таким расстоянием
+            continue;
+        }
+
+        if ($captured == 1) {
+            // Результат - самый похожий и единственный
+            return $distances[$i][0];
+        }
+
+        // Несколько результатов с очень похожим расстоянием
+        $error_message =
+        "Не удаётся установить личность: ".$surname."\n".
+        "Возможные значения:\n";
+        foreach ($distances[$i] as $e) {
+            $error_message .= "- ".$e->getNameWithInitials()."\n";
+        }
+        stopWithError($error_message);
+    }
+
+    // Ничего не нашли
+    return false;
+}
+
 // Разбирает данные деталей проведения пары. Возвращает в формате
 // [['Фамилия препода', 'Место проведения'], [...]]
 // И Фамилия и место могут быть null.
+// $celltext - текст ячейки
 function handleConductionData($celltext) {
     // Если это все, что есть - то принимаем меры...
     if ($celltext === 'спорт зал') {
@@ -111,21 +179,6 @@ function handleConductionData($celltext) {
             $place = $parts[1];
         }
 
-        // HACK: 12 сен 2024
-        if ($teacher === 'Игнатьевка') {
-            $teacher = 'Игнатьева';
-        }
-
-        // HACK: 16 сен 2024
-        if ($teacher === 'Гариофва') {
-            $teacher = 'Гарифова';
-        }
-
-        // HACK: 17 сен 2024
-        if ($teacher === 'Шешгова') {
-            $teacher = 'Шешегова';
-        }
-
         $output[] = [$teacher, $place];
     }
 
@@ -140,6 +193,22 @@ if ($argv[2] === '--parse-irrelevant') {
 } else {
     err('Второй аргумент не распознан. Допустимые значения: --parse-irrelevant, --no-parse-irrelevant');
     exit();
+}
+
+// https://www.php.net/manual/en/function.levenshtein.php#113702
+function utf8_to_extended_ascii($str, &$map) {
+    // find all multibyte characters (cf. utf-8 encoding specs)
+    $matches = array();
+    if (!preg_match_all('/[\xC0-\xF7][\x80-\xBF]+/', $str, $matches))
+        return $str; // plain ascii string
+    
+    // update the encoding map with the characters not already met
+    foreach ($matches[0] as $mbc)
+        if (!isset($map[$mbc]))
+            $map[$mbc] = chr(128 + count($map));
+    
+    // finally remap non-ascii characters
+    return strtr($str, $map);
 }
 
 #region Считывание информации
@@ -286,6 +355,11 @@ $dql_find_group =
 'SELECT g FROM '.Entities\CollegeGroup::class.' g '.
 'JOIN g.spec s '.
 'WHERE g.course_num=:courseNum AND s.name=:specName';
+
+// Получение всех сотрудников
+$dql_all_employees  = 'SELECT e FROM '.Entities\Employee::class.' e ';
+$q                  = $em->createQuery($dql_all_employees);
+$all_employees      = $q->getResult();
 
 foreach($dates as $date) {
     // Отформатированная дата
@@ -455,7 +529,7 @@ foreach($dates as $date) {
 
                 foreach ($conduction_details as $detail) {
 
-                    if ($detail[0] == null) {
+                    if ($detail[0] === null) {
                         $employee = null;
                     } else {
                         $employee = $employee_repo->findOneBy(
@@ -463,13 +537,21 @@ foreach($dates as $date) {
                         );
 
                         // Если после поиска препода мы его не нашли то
-                        // это повод остановить процесс
+                        // считаем что произошла очепятка, пытаемся найти
+                        // ближайшее совпадение
                         if ($employee === null) {
-                            err("Преподаватель {$detail[0]} не найден!");
-                            adminNotify(
-                                "[schedule-update.php] Преподаватель {$detail[0]} не найден, обновление расписания остановлено."
+                            $employee = findClosestTeacher(
+                                $detail[0],
+                                $all_employees
                             );
-                            exit();
+
+                            if ($employee === false) {
+                                stopWithError(
+                                    "Преподаватель {$detail[0]} не опознан"
+                                );
+                            }
+                            
+                            warning("Считаю что ".$detail[0]." - это ".$employee->getNameWithInitials());
                         }
                     }
 
