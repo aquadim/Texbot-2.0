@@ -156,6 +156,8 @@ function findClosestTeacher(
 // И Фамилия и место могут быть null.
 // $celltext - текст ячейки
 function handleConductionData($celltext) {
+    $celltext = trim($celltext);
+    
     // Если это все, что есть - то принимаем меры...
     if ($celltext === 'спорт зал') {
         return [[null, 'спорт зал']];
@@ -167,16 +169,16 @@ function handleConductionData($celltext) {
     foreach ($details as $detail) {
         // Формат: "фамилия преподавателя" "место проведения"
         // Либо: "фамилия преподавателя"
-        $parts = explode(" ", $detail);
+        $parts = explode(" ", trim($detail));
 
         if (count($parts) === 1) {
             // Есть только фамилия, за исключением случаев, описанных в начале
             // функции
-            $teacher = $parts[0];
+            $teacher = trim($parts[0]);
             $place = null;
         } else {
-            $teacher = $parts[0];
-            $place = $parts[1];
+            $teacher = trim($parts[0]);
+            $place = trim($parts[1]);
         }
 
         $output[] = [$teacher, $place];
@@ -547,7 +549,7 @@ foreach($dates as $date) {
 
                             if ($employee === false) {
                                 stopWithError(
-                                    "Преподаватель {$detail[0]} не опознан"
+                                    "Преподаватель не опознан из строки: $teacher_data"
                                 );
                             }
                             
