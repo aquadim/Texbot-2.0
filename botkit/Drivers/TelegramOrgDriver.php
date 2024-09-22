@@ -355,7 +355,11 @@ class TelegramOrgDriver implements IDriver {
         #region Определяем текст и ID сообщения
         switch ($this->field_type) {
         case 'Message':
-            $this->msg_text = $this->field_obj_http['text'];
+            if (isset($this->field_obj_http['text'])) {
+                $this->msg_text = $this->field_obj_http['text'];
+            } else {
+                $this->msg_text = '';
+            }
             $this->msg_id = (int)$this->field_obj_http['message_id'];
             break;
         case 'CallbackQuery':
