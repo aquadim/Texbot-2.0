@@ -158,7 +158,7 @@ function findClosestTeacher(
 function handleConductionData($celltext) {
     $celltext = trim($celltext);
     
-    // Если это все, что есть - то принимаем меры...
+    // Крайние случаи
     if ($celltext === 'спорт зал') {
         return [[null, 'спорт зал']];
     }
@@ -172,10 +172,9 @@ function handleConductionData($celltext) {
         $parts = explode(" ", trim($detail));
 
         if (count($parts) === 1) {
-            // Есть только фамилия, за исключением случаев, описанных в начале
-            // функции
-            $teacher = trim($parts[0]);
-            $place = null;
+            // Есть только место
+            $teacher = null;
+            $place = trim($parts[0]);
         } else {
             $teacher = trim($parts[0]);
             $place = trim($parts[1]);
