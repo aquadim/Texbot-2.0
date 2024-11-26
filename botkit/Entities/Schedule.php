@@ -22,6 +22,10 @@ class Schedule {
     #[ORM\Column(type: 'date_immutable')]
     private \DateTimeImmutable $day;
 
+    // Дата и время создания записи
+    #[ORM\Column(type: 'datetime_immutable')]
+    private \DateTimeImmutable $created_at;
+
     #region getters
     public function getId() {
         return $this->id;
@@ -43,6 +47,10 @@ class Schedule {
     
     public function setDay(\DateTimeImmutable $day) : void {
         $this->day = $day;
+    }
+    
+    public function setCreatedAt(\DateTimeImmutable $created_at) : void {
+        $this->created_at = $created_at;
     }
     #endregion
 }

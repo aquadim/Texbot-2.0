@@ -27,7 +27,10 @@ class PairRepo extends EntityRepository {
     // $date - дата в формате ГГГГ-ММ-ДД
     public function getPairsOfTeacher(Employee $e, $date) {
         $em = $this->getEntityManager();
-        
+
+        // Выбираются все детали проведения
+        // из пар, которые связаны с расписанием на заданный день,
+        // которое было создано позднее всех (самое актуальное)
         $query = $em->createQuery(
         'SELECT pcd, p, pn, s, g '.
         'FROM '.PairConductionDetail::class.' pcd '.
@@ -37,7 +40,9 @@ class PairRepo extends EntityRepository {
         'JOIN s.college_group g '.
         'WHERE s.day=:date '.
         'AND pcd.employee=:employee '.
-        'ORDER BY p.time'
+        'GROUP BY s.id '.
+        'ORDER BY p.time '.
+        'HAVING MAX(s.create_at)'
         );
 
         $query->setParameters([

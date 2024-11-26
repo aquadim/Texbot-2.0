@@ -378,18 +378,6 @@ foreach($dates as $date) {
     
     // День этого расписания
     $schedule_day = $date->setTime(0, 0, 0);
-    
-    // Поиск существующих расписаний. Если они найдены, удаляем!
-    $existing = $em
-        ->getRepository(Entities\Schedule::class)
-        ->findBy([
-            'day' => $schedule_day
-        ]);
-
-    foreach ($existing as $s) {
-        $em->remove($s);
-    }
-    $em->flush();
 
     // Дата актуальна. Парсим таблицу, связанную с этой датой
     info("Выполняется парсинг таблицы для даты: ".$date_text);
@@ -438,7 +426,7 @@ foreach($dates as $date) {
                 // Это не название группы, пропускаем столбец
                 continue;
             }
-                    
+            
             $group_parts = explode(" ", $data[$y][$x]);
             $group_course = $group_parts[0];
             $group_spec = $group_parts[1];
@@ -468,6 +456,7 @@ foreach($dates as $date) {
             $schedule = new Entities\Schedule();
             $schedule->setCollegeGroup($group);
             $schedule->setDay($schedule_day);
+            $schedule->setCreatedAt($now);
             $em->persist($schedule);
 
             // Парсинг пар группы по столбцу до конца таблицы
