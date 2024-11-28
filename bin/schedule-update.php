@@ -1,5 +1,8 @@
 <?php
-// Скрипт для парсинга расписания
+// Скрипт для
+// 1. Парсинга и обновления расписания
+// 2. Инвалидации кэша изображений расписаний
+// 3. Оповещения об изменении в расписании
 // Спасибо за помощь (и код):
 // https://stackoverflow.com/questions/63249647/how-to-read-table-cell-content-via-phpword-library
 // https://stackoverflow.com/questions/50994146/read-ms-word-document-with-php-word
@@ -13,6 +16,8 @@ use BotKit\Database;
 use BotKit\Entities;
 use BotKit\Enums\ImageCacheType;
 use function Texbot\adminNotify;
+use function Texbot\getPairsChangedText;
+use function Texbot\notifyGroup;
 
 function info($text) {
     echo $text."\n";
@@ -99,9 +104,6 @@ function findClosestTeacher(
     $all_employees
 ) : Entities\Employee | false
 {
-    // Наименьшее расстояние левенштейна
-    $least_distance = 9999;
-
     // Расстояние, выше которого строки даже не проверяем
     $threshold = 4;
 
@@ -358,6 +360,17 @@ $dql_find_group =
 'JOIN g.spec s '.
 'WHERE g.course_num=:courseNum AND s.name=:specName';
 
+// Запрос актуального расписания для группы на дату
+$dql_find_latest_schedule =
+'SELECT s FROM '.Entities\Schedule::class.' s '.
+'WHERE s.college_group=:collegeGroup AND s.day=:day '.
+'ORDER BY s.created_at DESC';
+
+// Запрос пар расписания
+$dql_get_pairs_of_schedule =
+'SELECT p FROM '.Entities\Pair::class.' p '.
+'WHERE p.schedule=:schedule';
+
 // Получение всех сотрудников
 $dql_all_employees  = 'SELECT e FROM '.Entities\Employee::class.' e ';
 $q                  = $em->createQuery($dql_all_employees);
@@ -432,7 +445,7 @@ foreach($dates as $date) {
             $group_course = $group_parts[0];
             $group_spec = $group_parts[1];
             
-            // Поиск группы в БД
+            // -- Поиск группы в БД --
             $q = $em->createQuery($dql_find_group);
             $q->setParameters([
                 'courseNum'=> $group_course,
@@ -453,6 +466,26 @@ foreach($dates as $date) {
             $group = $result[0];
             info("Сбор данных для группы ".$group->getHumanName());
 
+            // -- Получение самого актуального расписания на этот момент --
+            $check_difference = true; // нужна ли проверка отличий?
+            $q = $em->createQuery($dql_find_latest_schedule);
+            $q->setParameters([
+                'collegeGroup' => $group,
+                'day' => $schedule_day
+            ]);
+            $q->setMaxResults(1);
+            $r = $q->getResult();
+            if (count($r) == 0) {
+                // Нет предыдущих версий, сверять не нужно
+                $check_difference = false;
+            } else {
+                $q_old_pairs = $em->createQuery($dql_get_pairs_of_schedule);
+                $q_old_pairs->setParameters([
+                    'schedule' => $r[0]
+                ]);
+                $old_pairs = $q_old_pairs->getResult();
+            }
+            
             // Создание записи расписания
             $schedule = new Entities\Schedule();
             $schedule->setCollegeGroup($group);
@@ -462,6 +495,8 @@ foreach($dates as $date) {
 
             // Парсинг пар группы по столбцу до конца таблицы
             $group_y = $y + 1;
+            $new_pairs = [];
+
             while ($group_y < $dataheight) {
             
                 if (count($data[$group_y]) < 14) {
@@ -487,14 +522,14 @@ foreach($dates as $date) {
             
                 $teacher_data = $data[$group_y + 1][$x * 2 + 1];
                 
-                // Разбор времени пары
+                // -- Разбор времени пары --
                 $pair_parts = explode('.', $time);
                 $pair_time = $schedule_day->setTime(
                     (int)$pair_parts[0],
                     (int)$pair_parts[1]
                 );
             
-                // Поиск/создание названия пары
+                // -- Поиск/создание названия пары --
                 $pair_name_obj = $em
                     ->getRepository(Entities\PairName::class)
                     ->findOneBy(['name' => $pair_name]);
@@ -506,18 +541,18 @@ foreach($dates as $date) {
                     $em->flush();
                 }
             
-                // Создание записи пары
+                // -- Создание записи пары --
                 $pair = new Entities\Pair();
                 $pair->setSchedule($schedule);
                 $pair->setTime($pair_time);
                 $pair->setPairName($pair_name_obj);
+                $new_pairs[] = $pair;
                 $em->persist($pair);
             
                 // -- Разбор деталей проведения --
                 $conduction_details = handleConductionData($teacher_data);
                 $employee_repo = $em->getRepository(Entities\Employee::class);
                 $place_repo = $em->getRepository(Entities\Place::class);
-
                 foreach ($conduction_details as $detail) {
 
                     if ($detail[0] === null) {
@@ -569,6 +604,71 @@ foreach($dates as $date) {
             
                 // На одну пару приходится две строки
                 $group_y += 2;
+            }
+
+            // На этом этапе все пары расписания были записаны
+            // Сверяем количество, наименования и время пар нового с последней
+            // версией расписания
+            if ($check_difference) {
+                info("Выполняется проверка различности пар");
+                
+                // -- Проверка есть ли изменения --
+                $amount_increased   = false;
+                $amount_decreased   = false;
+                $time_changed       = false;
+                $discipline_changed = false;
+
+                // Если больше пар
+                if (count($new_pairs) > count($old_pairs)) {
+                    $amount_increased = true;
+                }
+
+                // Если меньше пар
+                if (count($new_pairs) < count($old_pairs)) {
+                    $amount_decreased = true;
+                }
+
+                if (count($new_pairs) == count($old_pairs)) {
+                    for ($i = 0; $i < count($new_pairs); $i++) {
+                        $old = $old_pairs[$i];
+                        $new = $new_pairs[$i];
+
+                        // Если время не совпадает
+                        if ($old->getTime() != $new->getTime()) {
+                            $time_changed = true;
+                        }
+
+                        // Если дисциплина не совпадает
+                        if ($old->getPairName() != $new->getPairName()) {
+                            $discipline_changed = true;
+                        }
+                    }
+                }
+
+                // -- Сборка сообщения --
+                $items = [];
+                if ($amount_increased) {
+                    $items[] = "⬆️ Количество пар увеличилось";
+                }
+                if ($amount_decreased) {
+                    $items[] = "⬇️ Количество пар уменьшилось";
+                }
+                if ($time_changed) {
+                    $items[] = "🕔 Время пар изменилось";
+                }
+                if ($discipline_changed) {
+                    $items[] = "📚 Дисциплины пар изменились";
+                }
+
+                if (count($items) > 0) {
+                    info("Обнаружены различия между последним и текущим расписанием");
+                    $message = getPairsChangedText($items);
+                    notifyGroup($message);
+                } else {
+                    info("Различия не выявлены");
+                }
+            } else {
+                info("Проверка различности пар пропущена");
             }
         }
     }
