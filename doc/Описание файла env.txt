@@ -1,0 +1,23 @@
+В .env файле собраны переменные, необходимые для работы Техбота. Они доступны в любом файле, если загрузить bootstrap.php.
+
+dsn - Строка подключения к базе данных. См. https://www.doctrine-project.org/projects/doctrine-dbal/en/4.2/reference/configuration.html#connecting-using-a-url
+
+vkcom_confirmation - Код верификации сервера для ВКонтакте
+
+vkcom_apikey - API ключ ВКонтакте
+
+vkcom_public_id - ID сообщества бота ВКонтакте
+
+vkcom_secret - Секретный текст, используемый для подтверждения запросов ВКонтакте
+
+telegramorg_apikey - API ключ Telegram
+
+telegramorg_sendWhenEditNotPossible - Отправлять новое сообщение, если редактировать невозможно?
+
+telegramorg_secret - Секретный текст, используемый для подтверждения запросов Telegram
+
+notify - Включить уведомления об ошибках администратору?
+
+notify_token - API ключ бота уведомлений В TELEGRAM
+
+notify_chat - ID чата, в который отправляются уведомления администратора

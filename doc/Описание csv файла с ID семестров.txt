@@ -1,0 +1,14 @@
+Первая колонка игнорируется.
+
+Колонки:
+ID_PGROUP	NAME	YEAR1	YEAR2	COURSE_NUM	WEEK_NUM1	WEEK_NUM2	ID_PGROUPPERIOD
+
+Пояснения:
+ID_PGROUP 		- не используется
+NAME 			- название специальности группы
+YEAR1 			- год поступления
+YEAR2 			- не используется
+COURSE_NUM 		- номер курса группы
+WEEK_NUM1 		- не используется
+WEEK_NUM2 		- не используется
+ID_PGROUPPERIOD - ID семестра в системе АВЕРС

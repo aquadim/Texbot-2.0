@@ -40,9 +40,10 @@ class PairRepo extends EntityRepository {
         'JOIN s.college_group g '.
         'WHERE s.day=:date '.
         'AND pcd.employee=:employee '.
-        'GROUP BY s.id '.
-        'ORDER BY p.time '.
-        'HAVING MAX(s.create_at)'
+        'AND s.created_at = ('.
+            'SELECT MAX(schedule.created_at) '.
+            'FROM '.Schedule::class.' schedule)'.
+        'ORDER BY p.time '
         );
 
         $query->setParameters([
@@ -66,7 +67,10 @@ class PairRepo extends EntityRepository {
         'JOIN p.schedule s '.
         'JOIN s.college_group g '.
         'WHERE s.day=:date '.
-        'AND pcd.place=:place'
+        'AND pcd.place=:place '.
+        'ORDER BY p.time '.
+        'GROUP BY s.id '.
+        'HAVING MAX(s.created_at)'
         );
 
         $query->setParameters([

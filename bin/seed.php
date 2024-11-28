@@ -118,7 +118,7 @@ $teachers = array(
     array('patron' => 'Валерьевна', 'name' => 'Екатерина', 'surname' => 'Галимова'),
     array('patron' => 'Альферовна', 'name' => 'Алмазия', 'surname' => 'Гарифова'),
     array('patron' => 'Валентиновна', 'name' => 'Любовь', 'surname' => 'Дербышева'),
-    array('patron' => 'Николаевна', 'name' => 'Юлия', 'surname' => 'Eремеева'),
+    array('patron' => 'Николаевна', 'name' => 'Юлия', 'surname' => 'Еремеева'),
     array('patron' => 'Сергеевна', 'name' => 'Наталья', 'surname' => 'Игнатьева'),
     array('patron' => 'Анатольевна', 'name' => 'Светлана', 'surname' => 'Ильина'),
     array('patron' => 'Загидович', 'name' => 'Равиль', 'surname' => 'Исаков'),

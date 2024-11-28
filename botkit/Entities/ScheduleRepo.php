@@ -16,7 +16,7 @@ class ScheduleRepo extends EntityRepository {
         $dql =
         'SELECT s FROM '.Schedule::class.' s '.
         'WHERE s.day=:day AND s.college_group=:group '.
-        'ORDER BY s.created_at';
+        'ORDER BY s.created_at DESC';
         $q_schedule = $em->createQuery($dql);
         $q_schedule->setParameters([
             'day' => $date,

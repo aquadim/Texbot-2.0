@@ -45,6 +45,7 @@ function getCache(
     'SELECT c FROM '.ImageCache::class.' c '.
     'WHERE c.cache_type=:cacheType AND c.platform=:cachePlatform '.
     'AND c.search=:cacheSearch '.
+    'AND c.valid=1 '.
     'AND c.created_at BETWEEN :cacheTime AND :now';
     $q = $em->createQuery($dql);
     $q->setParameters([

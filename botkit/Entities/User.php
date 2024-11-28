@@ -37,6 +37,10 @@ class User {
     #[ORM\Column(type: 'integer')]
     private int $account_type = 0;
 
+    // Разрешены ли уведомления
+    #[ORM\Column(type: 'integer')]
+    private int $notifications_allowed = 0;
+
     #region getters
     // Возвращает ID пользователя в БД
     public function getId() : int {
@@ -61,6 +65,11 @@ class User {
     // Возвращает тип аккаунта
     public function getAccountType() : int {
         return $this->account_type;
+    }
+
+    // Возвращает значение можно ли пользователю присылать уведомления
+    public function notificationsAlloed() : bool {
+        return $this->notifications_allowed == 1;
     }
     #endregion
 
@@ -87,6 +96,10 @@ class User {
 
     public function setAccountType(int $type) : void {
         $this->account_type = $type;
+    }
+
+    public function setNotificationsAllowed(bool $allowed) : void {
+        $this->notifications_allowed = (int)$allowed;
     }
     #endregion
 

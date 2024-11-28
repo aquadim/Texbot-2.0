@@ -11,6 +11,7 @@ require realpath(__DIR__ . '/../botkit/bootstrap.php');
 
 use BotKit\Database;
 use BotKit\Entities;
+use BotKit\Enums\ImageCacheType;
 use function Texbot\adminNotify;
 
 function info($text) {
@@ -573,5 +574,18 @@ foreach($dates as $date) {
     }
     $counter++;
 }
+
+// Инвалидация кэша изображений
+// ограничения в 0 и 4 - все типы кэша, связанные с расписанием.
+// См. botkit/Entities/ImageCache.php
+$dql_invalidate_cache =
+"
+UPDATE ".Entities\ImageCache::class." c
+SET c.valid=0
+WHERE c.cache_type > 0 AND c.cache_type < 4
+";
+$query = $em->createQuery($dql_invalidate_cache);
+$query->execute();
+
 $em->flush();
 #endregion

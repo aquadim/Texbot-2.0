@@ -34,6 +34,10 @@ class ImageCache {
     // Дата создания
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $created_at;
+
+    // Можно ли использовать
+    #[ORM\Column(type: 'integer')]
+    private int $valid = 1;
     
     #region setters
     public function setCacheType(ImageCacheType $cache_type) {
@@ -54,6 +58,10 @@ class ImageCache {
     
     public function setCreatedAt(\DateTimeImmutable $datetime) {
         $this->created_at = $datetime;
+    }
+    
+    public function setIsValid(bool $valid) {
+        $this->valid = $valid;
     }
     #endregion
 
