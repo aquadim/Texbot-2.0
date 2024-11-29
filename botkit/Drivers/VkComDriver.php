@@ -422,6 +422,42 @@ class VkComDriver implements IDriver {
         
         return json_encode($object);
     }
+
+    public function massSend(array $user_models, IMessage $msg) : void {
+        // ВК позволяет отправлять сразу по 100 пользователям
+        $collected = 0;
+        $peer_ids = [];
+        $kb_string = $this->getKeyboardString($msg->getKeyboard());
+        
+        foreach ($user_models as $user_model) {
+            $peer_ids[] = $user_model->getIdOnPlatform();
+            $collected++;
+
+            if ($collected == 100) {
+                $this->execApiMethod("messages.send",
+                [
+                    "peer_ids" => implode(",", $peer_ids),
+                    "random_id" => 0,
+                    "message" => $msg->getText(),
+                    "keyboard" => $kb_string
+                ]);
+                
+                $collected = 0;
+                $peer_ids = [];
+            }
+        }
+
+        // Остаток
+        if ($collected > 0) {
+            $this->execApiMethod("messages.send",
+            [
+                "peer_ids" => implode(",", $peer_ids),
+                "random_id" => 0,
+                "message" => $msg->getText(),
+                "keyboard" => $kb_string
+            ]);
+        }
+    }
     #endregion
     
     // Сохраняет в драйвер сервер для загрузки фотографий в сообщения

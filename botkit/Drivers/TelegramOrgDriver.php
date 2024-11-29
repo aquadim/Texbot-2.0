@@ -208,7 +208,7 @@ class TelegramOrgDriver implements IDriver {
     }
 
     public function sendDirectMessage(UserModel $user, IMessage $msg) : void {
-        // TODO
+        $this->sendToChat(new DirectChat($user->getIdOnPlatform()), $msg);
     }
     
     public function editMessage(IMessage $old, IMessage $new) : void {
@@ -482,6 +482,13 @@ class TelegramOrgDriver implements IDriver {
         $object[$buttons_key] = $buttons;
         
         return json_encode($object);
+    }
+
+    public function massSend(array $user_models, IMessage $msg) : void {
+        // В телеграм нет возможности массовой отправки
+        foreach ($user_models as $user_model) {
+            $this->sendDirectMessage($user_model, $msg);
+        }
     }
     #endregion
 

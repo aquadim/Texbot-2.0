@@ -18,6 +18,7 @@ use BotKit\Enums\ImageCacheType;
 use function Texbot\adminNotify;
 use function Texbot\getPairsChangedText;
 use function Texbot\notifyGroup;
+use Texbot\NotificationService;
 
 function info($text) {
     echo $text."\n";
@@ -264,6 +265,9 @@ foreach ($phpWord->getSections() as $section) {
     }
 }
 #endregion
+
+// Массив уведомлений - какие группы должны быть уведомлены какими сообщениями
+$notifications = [];
 
 #region Парсинг данных
 /* Поиск дат расписаний. Так как общий формат названия таблиц следует такому шаблону
@@ -663,7 +667,7 @@ foreach($dates as $date) {
                 if (count($items) > 0) {
                     info("Обнаружены различия между последним и текущим расписанием");
                     $message = getPairsChangedText($items);
-                    notifyGroup($message);
+                    $notifications[$group] = $message;
                 } else {
                     info("Различия не выявлены");
                 }
@@ -674,8 +678,9 @@ foreach($dates as $date) {
     }
     $counter++;
 }
+#endregion
 
-// Инвалидация кэша изображений
+#region Инвалидация кэша изображений
 // ограничения в 0 и 4 - все типы кэша, связанные с расписанием.
 // См. botkit/Entities/ImageCache.php
 $dql_invalidate_cache =
@@ -688,4 +693,10 @@ $query = $em->createQuery($dql_invalidate_cache);
 $query->execute();
 
 $em->flush();
+#endregion
+
+#region Отправка уведомлений
+foreach ($notifications as $group => $text) {
+    NotificationService::sendToGroup($group, $text);
+}
 #endregion

@@ -58,4 +58,13 @@ enum CallbackType: int {
     // В списке сотрудников
     case EmployeeSelectionPagination = 14;
     #endregion
+
+    #region Установка разрешения присылания уведомлений
+    case EnableNotifications = 100;
+    case DisableNotifications = 101;
+    #endregion
+
+    #region Кнопки в уведомлениях
+    case ViewRasp = 200;
+    #endregion
 }

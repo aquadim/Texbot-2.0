@@ -7,7 +7,7 @@ namespace BotKit\Entities;
 use BotKit\Enums\State;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: "UserRepo")]
 #[ORM\Table(name: 'user')]
 class User {
     #[ORM\Id]
@@ -70,6 +70,10 @@ class User {
     // Возвращает значение можно ли пользователю присылать уведомления
     public function notificationsAlloed() : bool {
         return $this->notifications_allowed == 1;
+    }
+
+    public function getIdOnPlatform() : string {
+        return $this->id_on_platform;
     }
     #endregion
 

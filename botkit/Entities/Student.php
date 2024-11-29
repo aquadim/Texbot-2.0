@@ -40,6 +40,10 @@ class Student {
         $this->user = $user;
     }
 
+    public function getUser() : User {
+        return $this->user;
+    }
+
     public function setGroup(CollegeGroup $group) : void {
         $this->group = $group;
     }

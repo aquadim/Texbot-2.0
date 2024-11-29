@@ -71,4 +71,7 @@ interface IDriver {
     
     // Возвращает разметку клавиатуры. Обычно в формате JSON или XML
     public static function getKeyboardMarkup(IKeyboard $keyboard) : string;
+
+    // Выполняет массовую рассылку
+    public function massSend(array $user_models, IMessage $msg) : void;
 }
