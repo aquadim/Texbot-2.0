@@ -22,9 +22,10 @@ if ($group == null) {
     exit();
 }
 
-NotificationService::sendToGroup(
+$sent = NotificationService::sendToGroup(
     $group,
     "тестовое сообщение рассылки",
     CallbackType::ViewRasp,
     "Просмотр расписания"
 );
+echo "Отправлено сообщений: " . $sent . "\n";

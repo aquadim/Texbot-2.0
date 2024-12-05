@@ -374,7 +374,7 @@ class HubController extends Controller {
             $avers_login_set = $avers_login !== null;
             if (!$avers_login_set) {
                 $profile_text .=
-                "⚠ Вы не указывали логин и пароль от электронного журнала\n";
+                "⚠ Ты не указывал логин и пароль от электронного журнала\n";
             } else {
                 $profile_text .=
                 "🆔 Логин, используемый для сбора ваших оценок - ".
@@ -395,7 +395,10 @@ class HubController extends Controller {
             }
 
             // Клавиатура
-            $keyboard = new StudentProfileKeyboard($avers_login_set);
+            $keyboard = new StudentProfileKeyboard(
+                $avers_login_set,
+                $user_ent->notificationsAllowed()
+            );
 
         } else if ($user_ent->isTeacher()) {
             $teacher = $em->getRepository(Teacher::class)->findOneBy(
@@ -406,14 +409,22 @@ class HubController extends Controller {
             // Сотрудник
             $profile_text =
             '👥 Сотрудник, связанный с тобой - '.
-            $employee->getNameWithInitials();
+            $employee->getNameWithInitials() . "\n";
 
             // Клавиатура
-            $keyboard = new TeacherProfileKeyboard();
+            $keyboard = new TeacherProfileKeyboard(
+                $user_ent->notificationsAllowed()
+            );
 
         } else {
             $this->errorNotRegistered();
             return;
+        }
+
+        if ($user_ent->notificationsAllowed()) {
+            $profile_text .= "✅ Уведомления включены";
+        } else {
+            $profile_text .= "🚫 Уведомления отключены";
         }
          
         $m = M::create($profile_text);

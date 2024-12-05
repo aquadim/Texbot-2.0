@@ -499,7 +499,10 @@ class VkComDriver implements IDriver {
         ]);
 
         if (!isset($response['response']) || $response === null) {
-            $this->sendToChat($this->current_event->getChat(), 'Произошла ошибка при загрузке фото, попробуй ещё раз позже');
+            $this->sendToChat(
+                $this->current_event->getChat(),
+                TextMessage::create('Произошла ошибка при загрузке фото, попробуй ещё раз позже')
+            );
             throw new \Exception("No response when uploading photo");
         }
         

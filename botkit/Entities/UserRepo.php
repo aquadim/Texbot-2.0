@@ -13,7 +13,8 @@ class UserRepo extends EntityRepository {
         'SELECT s, u, p FROM '. Student::class .' s '.
         'JOIN s.user u '.
         'JOIN u.platform p '.
-        'WHERE s.group=:group '
+        'WHERE s.group=:group '.
+        'AND u.notifications_allowed=1'
         );
 
         $query->setParameters(['group'=>$group]);

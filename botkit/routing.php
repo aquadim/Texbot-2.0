@@ -40,6 +40,10 @@ Bot::onCallback(CallbackType::SelectedEmployeeForRasp, 'ScheduleController@showD
 Bot::onCallback(CallbackType::SelectedEmployeeForNewAccountType, 'UtilController@newAccountTypeTeacher');
 Bot::onCallback(CallbackType::SelectedEmployeeForRegister, 'OnboardingController@teacherSelectedEmployee');
 
+// Обратные вызовы: разрешения уведомлений
+Bot::onCallback(CallbackType::EnableNotifications, 'NotificationsController@enable');
+Bot::onCallback(CallbackType::DisableNotifications, 'NotificationsController@disable');
+
 // Главное меню
 Bot::onText("Расписание", 'HubController@schedule', State::Hub);
 Bot::onText("Оценки", 'HubController@grades', State::Hub);
@@ -53,6 +57,7 @@ Bot::onText("Профиль", 'HubController@showProfile', State::Hub);
 // Команды
 Bot::onCommand("/start", 'OnboardingController@welcome');
 Bot::onCommand("/hub", 'HubController@hub');
+Bot::onCommand("/cancel", 'HubController@hub');
 Bot::onCommand("/rasp", 'HubController@schedule');
 Bot::onCommand("/grades", 'HubController@grades');
 Bot::onCommand("/next", 'HubController@nextPair');

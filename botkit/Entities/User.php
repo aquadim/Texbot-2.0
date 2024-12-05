@@ -68,7 +68,7 @@ class User {
     }
 
     // Возвращает значение можно ли пользователю присылать уведомления
-    public function notificationsAlloed() : bool {
+    public function notificationsAllowed() : bool {
         return $this->notifications_allowed == 1;
     }
 
