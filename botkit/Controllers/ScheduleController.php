@@ -310,6 +310,11 @@ class ScheduleController extends Controller {
 
         $this->replyText("❌ Ты не студент, либо не зарегистрировался");
     }
+
+    // Расписание на завтра
+    public function tomorrowStudentRasp() {
+        
+    }
     
     // Показывает расписание текущего препода
     // $data - пустой массив

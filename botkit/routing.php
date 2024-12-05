@@ -17,6 +17,7 @@ Bot::onCallback(CallbackType::ChangeGroup, 'HubController@changeStudentGroupStar
 Bot::onCallback(CallbackType::ChangePeriod, 'HubController@changeStudentPeriod');
 Bot::onCallback(CallbackType::SelectedPeriod, 'HubController@studentPeriodSelected');
 Bot::onCallback(CallbackType::ChangeAccountType, 'UtilController@changeAccountType');
+Bot::onCallback(CallbackType::ViewTomorrowRasp, 'ScheduleController@tomorrowStudentRasp');
 
 // Обратные вызовы: выбрана группа
 Bot::onCallback(CallbackType::SelectedGroupForStudentRegister, 'OnboardingController@studentSelectedGroup');

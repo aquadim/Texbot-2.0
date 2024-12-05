@@ -10,11 +10,17 @@
 /* php schedule-update.php <файл расписания> 
  * <нужно ли делать проверку актуальности (--parse-irrelevant/--no-parse-irrelevant)> */
 
+/* Примеры:
+ * php schedule-update.php https://www.vpmt.ru/docs/rasp2.doc --parse-irrelevant
+ * php schedule-update.php https://www.vpmt.ru/docs/rasp2.doc --no-parse-irrelevant
+*/
+
 require realpath(__DIR__ . '/../botkit/bootstrap.php');
 
 use BotKit\Database;
 use BotKit\Entities;
 use BotKit\Enums\ImageCacheType;
+use BotKit\Enums\CallbackType;
 use function Texbot\adminNotify;
 use function Texbot\getPairsChangedText;
 use function Texbot\notifyGroup;
@@ -353,9 +359,12 @@ if (count($dates) != count($tables)) {
 }
 $counter = 0;
 
+// Сегодня
+$now            = new DateTimeImmutable();
 // После какой временной отметки расписание не актуально? (текущее время + 4 дня)
-$now = new DateTimeImmutable();
 $date_relevancy = $now->add(new DateInterval("P4D"));
+// Завтра, 00:00:00
+$tomorrow       = $now->add(new DateInterval("P1D"))->setTime(0, 0, 0);
 
 $em = Database::getEm();
 
@@ -472,22 +481,28 @@ foreach($dates as $date) {
 
             // -- Получение самого актуального расписания на этот момент --
             $check_difference = true; // нужна ли проверка отличий?
-            $q = $em->createQuery($dql_find_latest_schedule);
-            $q->setParameters([
-                'collegeGroup' => $group,
-                'day' => $schedule_day
-            ]);
-            $q->setMaxResults(1);
-            $r = $q->getResult();
-            if (count($r) == 0) {
-                // Нет предыдущих версий, сверять не нужно
+            if ($tomorrow != $date) {
+                // Нужно проверять только расписание на завтра
                 $check_difference = false;
-            } else {
-                $q_old_pairs = $em->createQuery($dql_get_pairs_of_schedule);
-                $q_old_pairs->setParameters([
-                    'schedule' => $r[0]
+            }
+            if ($check_difference) {
+                $q = $em->createQuery($dql_find_latest_schedule);
+                $q->setParameters([
+                    'collegeGroup' => $group,
+                    'day' => $schedule_day
                 ]);
-                $old_pairs = $q_old_pairs->getResult();
+                $q->setMaxResults(1);
+                $r = $q->getResult();
+                if (count($r) == 0) {
+                    // Нет предыдущих версий, сверять не нужно
+                    $check_difference = false;
+                } else {
+                    $q_old_pairs = $em->createQuery($dql_get_pairs_of_schedule);
+                    $q_old_pairs->setParameters([
+                        'schedule' => $r[0]
+                    ]);
+                    $old_pairs = $q_old_pairs->getResult();
+                }
             }
             
             // Создание записи расписания
@@ -667,7 +682,7 @@ foreach($dates as $date) {
                 if (count($items) > 0) {
                     info("Обнаружены различия между последним и текущим расписанием");
                     $message = getPairsChangedText($items);
-                    $notifications[$group] = $message;
+                    $notifications[] = ["group"=>$group, "msg"=>$message];
                 } else {
                     info("Различия не выявлены");
                 }
@@ -696,7 +711,16 @@ $em->flush();
 #endregion
 
 #region Отправка уведомлений
-foreach ($notifications as $group => $text) {
-    NotificationService::sendToGroup($group, $text);
+foreach ($notifications as $n) {
+    NotificationService::sendToGroup(
+        $n["group"],
+        $n["msg"],
+        CallbackType::SelectedDateForCurrentStudentRasp,
+        [
+            "date" => $tomorrow,
+            "data" => []
+        ],
+        "Расписание на завтра"
+    );
 }
 #endregion

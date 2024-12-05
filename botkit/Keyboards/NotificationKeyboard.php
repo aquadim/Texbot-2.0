@@ -16,6 +16,7 @@ class NotificationKeyboard extends InlineKeyboard {
     // $btn - первая кнопка
     public function __construct(
         ?CallbackType $buttonCallbackType,
+        ?array $button_params,
         ?string $buttonText
     ) {
         $this->layout = [];
@@ -24,7 +25,7 @@ class NotificationKeyboard extends InlineKeyboard {
             $this->layout[] = [new CallbackButton(
                 $buttonText,
                 $buttonCallbackType,
-                [],
+                $button_params,
                 ButtonColor::Primary
             )];
         }

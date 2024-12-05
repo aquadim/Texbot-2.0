@@ -29,6 +29,7 @@ class NotificationService {
         CollegeGroup $group,
         string $message,
         ?CallbackType $buttonCallbackType = null,
+        ?array $callback_params = null,
         ?string $buttonText = null
     ) : int {
 
@@ -54,7 +55,11 @@ class NotificationService {
         }
 
         $msg = M::create($message);
-        $kb = new NotificationKeyboard($buttonCallbackType, $buttonText);
+        $kb = new NotificationKeyboard(
+            $buttonCallbackType,
+            $callback_params,
+            $buttonText
+        );
         $msg->setKeyboard($kb);
 
         $vkcom_driver->massSend($vk_users, $msg);
