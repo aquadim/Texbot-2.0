@@ -481,7 +481,7 @@ foreach($dates as $date) {
 
             // -- Получение самого актуального расписания на этот момент --
             $check_difference = true; // нужна ли проверка отличий?
-            if ($tomorrow != $date) {
+            if ($tomorrow != $schedule_day) {
                 // Нужно проверять только расписание на завтра
                 $check_difference = false;
             }
