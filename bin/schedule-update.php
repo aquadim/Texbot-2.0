@@ -717,7 +717,7 @@ foreach ($notifications as $n) {
         $n["msg"],
         CallbackType::SelectedDateForCurrentStudentRasp,
         [
-            "date" => $tomorrow,
+            "date" => $tomorrow->format('Y-m-d'),
             "data" => []
         ],
         "Расписание на завтра"
