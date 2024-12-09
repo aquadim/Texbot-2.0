@@ -1,11 +1,10 @@
 <?php
 // Группа студентов
-
 namespace BotKit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: CollegeGroupRepo::class)]
+#[ORM\Entity(repositoryClass: Repos\CollegeGroupRepo::class)]
 #[ORM\Table(name: 'college_group')]
 class CollegeGroup {
     #[ORM\Id]

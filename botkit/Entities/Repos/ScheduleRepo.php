@@ -1,6 +1,6 @@
 <?php
 
-namespace BotKit\Entities;
+namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
 

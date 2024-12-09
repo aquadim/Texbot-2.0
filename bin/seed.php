@@ -6,8 +6,16 @@ require realpath(__DIR__ . '/../botkit/bootstrap.php');
 
 use BotKit\Database;
 use BotKit\Entities;
+use BotKit\Enums\FunctionNames;
 
 $em = Database::getEM();
+
+// Функции
+$function_names = array_column(FunctionNames::cases(), 'value');
+foreach ($function_names as $fname) {
+    $fn = new Entities\TexbotFunction($fname);
+    $em->persist($fn);
+}
 
 // Платформы
 $vk_platform = new Entities\Platform("vk.com");

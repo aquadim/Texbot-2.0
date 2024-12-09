@@ -5,7 +5,7 @@ namespace BotKit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: "EmployeeRepo")]
+#[ORM\Entity(repositoryClass: Repos\EmployeeRepo::class)]
 #[ORM\Table(name: 'employee')]
 class Employee {
     #[ORM\Id]

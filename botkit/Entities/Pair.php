@@ -1,13 +1,12 @@
 <?php
 // Пара
-
 namespace BotKit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
-#[ORM\Entity(repositoryClass: "PairRepo")]
+#[ORM\Entity(repositoryClass: Repos\PairRepo::class)]
 #[ORM\Table(name: 'pair')]
 class Pair {
     #[ORM\Id]
@@ -17,7 +16,7 @@ class Pair {
 
     // Для какого расписания
     #[ORM\ManyToOne(Schedule::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: "CASCADE")]
+    #[ORM\JoinColumn(nullable: false)]
     private Schedule $schedule;
 
     // Время проведения

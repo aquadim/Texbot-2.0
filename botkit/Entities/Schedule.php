@@ -1,11 +1,10 @@
 <?php
 // Пары расписания на одинь день для группы
-
 namespace BotKit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: "ScheduleRepo")]
+#[ORM\Entity(repositoryClass: Repos\ScheduleRepo::class)]
 #[ORM\Table(name: 'schedule')]
 class Schedule {
     #[ORM\Id]

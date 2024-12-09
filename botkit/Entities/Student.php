@@ -1,11 +1,10 @@
 <?php
 // Студент
-
 namespace BotKit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: "StudentRepo")]
+#[ORM\Entity(repositoryClass: Repos\StudentRepo::class)]
 #[ORM\Table(name: 'student')]
 class Student {
     #[ORM\Id]
@@ -36,44 +35,48 @@ class Student {
     #[ORM\JoinColumn(nullable: true)]
     private ?Period $preferenced_period = null;
 
+    #region setters
     public function setUser(User $user) : void {
         $this->user = $user;
-    }
-
-    public function getUser() : User {
-        return $this->user;
     }
 
     public function setGroup(CollegeGroup $group) : void {
         $this->group = $group;
     }
 
-    public function getGroup() : ?CollegeGroup {
-        return $this->group;
-    }
-
     public function setAversLogin(string $login) : void {
         $this->avers_login = $login;
+    }
+
+    public function setAversPassword(string $password) : void {
+        // Пароль хэшируется алгоритмом SHA-1
+        $this->avers_password = sha1($password);
+    }
+
+    public function setPreferencedPeriod(?Period $period) : void {
+        $this->preferenced_period = $period;
+    }
+    #endregion
+
+    #region getters
+    public function getUser() : User {
+        return $this->user;
+    }
+
+    public function getGroup() : ?CollegeGroup {
+        return $this->group;
     }
     
     public function getAversLogin() : ?string {
         return $this->avers_login;
-    }
-
-    // Пароль хэшируется алгоритмом SHA-1
-    public function setAversPassword(string $password) : void {
-        $this->avers_password = sha1($password);
     }
     
     public function getAversPassword() : ?string {
         return $this->avers_password;
     }
     
-    public function setPreferencedPeriod(?Period $period) : void {
-        $this->preferenced_period = $period;
-    }
-    
     public function getPreferencedPeriod() : ?Period {
         return $this->preferenced_period;
     }
+    #endregion
 }
