@@ -3,6 +3,7 @@
 namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
+use use BotKit\Entities\CollegeGroup;
 
 class CollegeGroupRepo extends EntityRepository {
 

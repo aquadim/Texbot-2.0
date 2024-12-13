@@ -3,6 +3,8 @@
 namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
+use BotKit\Entities\CollegeGroup;
+use BotKit\Entities\Schedule;
 
 class ScheduleRepo extends EntityRepository {
 

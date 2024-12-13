@@ -361,8 +361,8 @@ $counter = 0;
 
 // Сегодня
 $now            = new DateTimeImmutable();
-// После какой временной отметки расписание не актуально? (текущее время + 4 дня)
-$date_relevancy = $now->add(new DateInterval("P4D"));
+// После какой временной отметки расписание не актуально? (текущее время + 1 день)
+$date_relevancy = $now->add(new DateInterval("P1D"));
 // Завтра, 00:00:00
 $tomorrow       = $now->add(new DateInterval("P1D"))->setTime(0, 0, 0);
 

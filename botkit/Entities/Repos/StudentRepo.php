@@ -2,6 +2,7 @@
 namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
+use BotKit\Entities\User;
 
 class StudentRepo extends EntityRepository {
 

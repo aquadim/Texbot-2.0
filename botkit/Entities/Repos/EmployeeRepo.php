@@ -4,6 +4,7 @@ namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
+use BotKit\Entities\Employee;
 
 class EmployeeRepo extends EntityRepository {
 

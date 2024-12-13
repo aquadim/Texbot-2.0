@@ -3,6 +3,11 @@
 namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
+use BotKit\Entities\Schedule;
+use BotKit\Entities\Pair;
+use BotKit\Entities\Employee;
+use BotKit\Entities\PairConductionDetail;
+use BotKit\Entities\Place;
 
 class PairRepo extends EntityRepository {
 
