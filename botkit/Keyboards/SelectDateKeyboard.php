@@ -35,8 +35,8 @@ class SelectDateKeyboard extends InlineKeyboard {
             IntlDateFormatter::GREGORIAN
         );
 
-        // Добавляем 4 кнопки для выбора
-        while ($added < 4) {
+        // Добавляем 2 кнопки для выбора
+        while ($added < 2) {
             $weekday = $date->format('N');
             if ($weekday == 7) {
                 // Воскресенье пропускается т.к. у него нет пар
