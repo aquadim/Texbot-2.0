@@ -3,7 +3,7 @@
 namespace BotKit\Entities\Repos;
 
 use Doctrine\ORM\EntityRepository;
-use use BotKit\Entities\CollegeGroup;
+use BotKit\Entities\CollegeGroup;
 
 class CollegeGroupRepo extends EntityRepository {
 
@@ -17,6 +17,26 @@ class CollegeGroupRepo extends EntityRepository {
             'course_num' => $num
         ]);
         return $query->getResult();
+    }
+
+    // Возвращает группу по курсу и специальности
+    public function getByHumanParts(int $course, string $spec) : CollegeGroup | null {
+        $dql_find_group =
+        'SELECT g FROM ' . CollegeGroup::class.' g '.
+        'JOIN g.spec s '.
+        'WHERE g.course_num=:courseNum AND s.name=:specName';
+
+        $query = $this->getEntityManager()->createQuery($dql_find_group);
+        $query->setParameters([
+            'courseNum' => $course,
+            'specName' => $spec
+        ]);
+        $r = $query->getResult();
+
+        if (count($r) == 0) {
+            return null;
+        }
+        return $r[0];
     }
 
     // Возвращает группы по формату группы
