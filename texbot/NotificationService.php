@@ -62,8 +62,13 @@ class NotificationService {
         );
         $msg->setKeyboard($kb);
 
-        $vkcom_driver->massSend($vk_users, $msg);
-        $telegramorg_driver->massSend($tg_users, $msg);
+        try {
+            $vkcom_driver->massSend($vk_users, $msg);
+            $telegramorg_driver->massSend($tg_users, $msg);
+        } catch (\Exception $e) {
+            // pass
+        }
+        
 
         return count($vk_users) + count($tg_users);
     }
