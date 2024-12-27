@@ -26,7 +26,7 @@ class TexbotFunction {
     }
 
     public function getName() : string {
-        return $this->domain;
+        return $this->name;
     }
     #endregion
 

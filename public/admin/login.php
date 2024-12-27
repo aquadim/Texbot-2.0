@@ -9,14 +9,12 @@ $display_error = false;
 
 // Если метод - POST, произошла попытка авторизации, проверяем
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST["login"]) &&
-        isset($_POST["password"]) &&
-        $_POST["login"] == $_ENV["admin_login"] &&
-        $_POST["password"] == $_ENV["admin_password"]
+    if (isset($_POST["password"]) &&
+        hash('sha256', $_POST["password"]) == $_ENV["admin_password"]
     ) {
         // Успешная авторизация
         $_SESSION['allowed'] = true;
-        header("Location: /admin");
+        header("Location: /admin/index.php");
         exit();
     } else {
         // Неуспешная авторизация
@@ -40,10 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php } ?>
 
     <form method="POST">
-        <div class="mb-3">
-            <label for="login" class="form-label">Логин</label>
-            <input type="text" class="form-control" id="login" name="login">
-        </div>
         
         <div class="mb-3">
             <label for="password" class="form-label">Пароль</label>
