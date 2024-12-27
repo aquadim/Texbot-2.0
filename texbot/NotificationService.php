@@ -68,7 +68,6 @@ class NotificationService {
         } catch (\Exception $e) {
             // pass
         }
-        
 
         return count($vk_users) + count($tg_users);
     }

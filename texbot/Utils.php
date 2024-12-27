@@ -5,11 +5,16 @@ namespace Texbot;
 
 use BotKit\Models\Messages\TextMessage as M;
 use BotKit\Models\Attachments\PhotoAttachment;
+use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\ImageCache;
 use BotKit\Entities\Platform;
+use BotKit\Entities\Student;
+use BotKit\Entities\UsedFunction;
 use BotKit\Database;
 use BotKit\Enums\ImageCacheType;
+use BotKit\Enums\FunctionNames;
 use DOMDocument;
+use BotKit\Models\User;
 
 // Собирает данные о месте проведения пары
 // Преподаватель + место проведения
@@ -377,10 +382,22 @@ function getStudentGrades(
     return ['ok'=>true, 'data'=>$matrix];
 }}
 
-// Выполняет рассылку по группе
-// Возвращает количество отправленных сообщений
-if (!function_exists(__NAMESPACE__ . '\notifyGroup')) {
-function notifyGroup($message) : int {
-    echo $message;
-    return 0;
+// Добавляет запись статистики
+if (!function_exists(__NAMESPACE__ . '\addStat')) {
+function addStat(FunctionNames $name, User $user) : void {    
+    // Если текущий пользователь не студент, то добавлять не нужно
+    if (!$user->getEntity()->isStudent()) {
+        return;
+    }
+
+    // Поиск объекта студента
+    $em = Database::getEm();
+    $student = $em->getRepository(Student::class)->findOneBy(
+        ['user' => $user->getEntity()]
+    );
+
+    // Добавление объекта статистики
+    $uf_repo = $em->getRepository(UsedFunction::class);
+    $uf_repo->addStat($name, $student->getGroup());
 }}
+
