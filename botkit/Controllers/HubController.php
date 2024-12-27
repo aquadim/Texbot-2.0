@@ -15,6 +15,7 @@ use BotKit\Entities\CollegeGroup;
 use BotKit\Entities\Period;
 use BotKit\Entities\Pair;
 use BotKit\Entities\PairConductionDetail;
+use BotKit\Entities\UsedFunction;
 
 use BotKit\Keyboards\SuggestEnterAversCredentialsKeyboard;
 use BotKit\Keyboards\SelectGroup1Keyboard;
@@ -29,6 +30,7 @@ use BotKit\Keyboards\AnotherPeriodKeyboard;
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
 use BotKit\Enums\ImageCacheType;
+use BotKit\Enums\FunctionNames;
 
 use Texbot\GenericImagen;
 use Texbot\GradesImagen;
@@ -38,6 +40,7 @@ use function Texbot\getStudentGrades;
 use function Texbot\createCache;
 use function Texbot\getCache;
 use function Texbot\getConductionDetailsAsText;
+use function Texbot\addStat;
 
 class HubController extends Controller {
 
@@ -121,14 +124,8 @@ class HubController extends Controller {
             return;
         }
         
-        $em = Database::getEm();
-        
         // Получение предпочитаемого семестра студента
-        $student = $em->getRepository(Student::class)->findOneBy(
-            ['user' => $this->u->getEntity()]
-        );
         $period = $student->getPreferencedPeriod();
-        
         if ($period === null) {
             $this->edit(
                 $wait,
@@ -136,13 +133,13 @@ class HubController extends Controller {
             );
             return;
         }
-        
+
+        // Попытка найти кэш
         $cached = getCache(
             ImageCacheType::Grades,
             $this->u->getEntity()->getPlatform(),
             $period->getOrdNumber().'-'.$this->u->getIdOnPlatform(),
         );
-        
         if ($cached !== null) {
             // Кэш найден! Отправляем сообщение
             $m = M::create(getDoneText());
@@ -151,18 +148,20 @@ class HubController extends Controller {
             $this->edit($wait, $m);
             return;
         }
-        
+
+        // Получение данных об оценках
         $data = getStudentGrades(
             $login,
             $password,
             $period->getAversId()
         );
-        
         if (!$data['ok']) {
+            // Что-то не так, в data сообщение об ошибке
             $this->edit($wait, M::create('❌ '.$data['data']));
             return;
         }
-        
+
+        // Генерация изображения таблицы оценок
         $filename = GradesImagen::generateTable(
             $data['data'],
             ['Дисциплина', 'Оценки', 'Средний балл'],
@@ -170,18 +169,23 @@ class HubController extends Controller {
             [35, 40, 0],
             0
         );
-        
+
+        // Отправка
         $m = M::create(getDoneText());
         $m->addPhoto(PhotoAttachment::fromFile($filename));
         $m->setKeyboard(new AnotherPeriodKeyboard());
         $this->edit($wait, $m);
-        
+
+        // Создание кэша
         createCache(
             ImageCacheType::Grades,
             $this->u->getEntity()->getPlatform(),
             $period->getOrdNumber().'-'.$this->u->getIdOnPlatform(),
             $m->getPhotos()[0]->getId()
         );
+
+        // Добавление статистики
+        addStat(FunctionNames::Grades, $this->u);
     }
 
     // Кабинеты
@@ -290,6 +294,9 @@ class HubController extends Controller {
             $out_text .= "\n👥 Группа: ".$group->getHumanName();
         }
         
+        // Добавление статистики
+        addStat(FunctionNames::Next, $this->u);
+        
         $this->replyText($out_text);
     }
 
@@ -350,6 +357,8 @@ class HubController extends Controller {
         "3 пара: 11:10 - 12:35 (перерыв в 11:50)\n".
         "4 пара: 12:45 - 14:10 (перерыв в 13:25)"
         );
+
+        addStat(FunctionNames::Bells, $this->u);
     }
     
     // Показ профиля
@@ -451,15 +460,13 @@ class HubController extends Controller {
         $this->reply($m);
     }
     
-    // Смена группы студента начало
+    // Смена группы студента 1/2
     public function changeStudentGroupStart() {
-        // 1.
         $this->u->setState(State::NoResponse);
         $m = M::create("Начинаем обновление группы");
         $m->setKeyboard(new ClearKeyboard());
         $this->editAssociatedMessage($m);
         
-        // 2.
         $m = M::create("На какой курс меняем?");
         $m->setKeyboard(new SelectGroup1Keyboard(
             CallbackType::SelectedGroupForStudentEdit
@@ -467,7 +474,7 @@ class HubController extends Controller {
         $this->reply($m);
     }
     
-    // Смена группы студента конец
+    // Смена группы студента 2/2
     public function changeStudentGroupEnd($group_id) {
         // Обновление группы
         $em = Database::getEm();
@@ -489,7 +496,7 @@ class HubController extends Controller {
         $this->reply($m);
     }
     
-    // Смена семестра 1
+    // Смена семестра 1/2
     public function changeStudentPeriod() {
         // Выбрать все семестры этой группы
         $em = Database::getEm();
@@ -500,18 +507,16 @@ class HubController extends Controller {
         $periods = $em->getRepository(Period::class)->findBy(
             ['group' => $group]
         );
-
         if (count($periods) === 0) {
             $this->replyText("В настоящее время ни один семестр не доступен для выбора");
             return;
         }
-        
         $m = M::create("Выбери новый семестр");
         $m->setKeyboard(new SelectPeriodKeyboard($periods));
         $this->editAssociatedMessage($m);
     }
     
-    // Смена семестра 2
+    // Смена семестра 2/2
     public function studentPeriodSelected($period_id) {
         $em = Database::getEm();
         $student = $em->getRepository(Student::class)->findOneBy(
@@ -519,7 +524,6 @@ class HubController extends Controller {
         );
         $period = $em->find(Period::class, $period_id);
         $student->setPreferencedPeriod($period);
-        
         $this->editAssociatedMessage(M::create("✅ Предпочтения сохранены"));
     }
 }

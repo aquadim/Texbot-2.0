@@ -275,7 +275,8 @@ class TelegramOrgDriver implements IDriver {
         }
 
         if (!$field_found) {
-            throw new \Exception("Unknown update type: ".$field_name);
+            // Неизвестное событие, не обрабатываем
+            exit();
         }
 
         // Объект поля из POST запроса

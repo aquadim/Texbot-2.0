@@ -23,6 +23,7 @@ use BotKit\Keyboards\TeacherHubKeyboard;
 use BotKit\Enums\State;
 use BotKit\Enums\CallbackType;
 use BotKit\Enums\ImageCacheType;
+use BotKit\Enums\FunctionNames;
 
 use Texbot\GenericImagen;
 use function Texbot\getWaitMessage;
@@ -30,6 +31,7 @@ use function Texbot\getDoneText;
 use function Texbot\createCache;
 use function Texbot\getCache;
 use function Texbot\getConductionDetailsAsText;
+use function Texbot\addStat;
 
 use IntlDateFormatter;
 use DateTime;
@@ -223,14 +225,12 @@ class ScheduleController extends Controller {
 
     // Собирает все пары, которые связаны с определённым МЕСТОМ на дату $date
     private function sendCabinetRasp(Place $place, $date) {
-
         // Ищем кэш
         $cached = getCache(
             ImageCacheType::OccupancySchedule,
             $this->u->getEntity()->getPlatform(),
             $place->getId().'-'.$date
         );
-        
         if ($cached !== null) {
             // Кэш найден! Отправляем сообщение
             $m = M::create(getDoneText());
@@ -305,15 +305,11 @@ class ScheduleController extends Controller {
             );
 
             $this->sendRasp($student_obj->getGroup(), $date);
+            addStat(FunctionNames::Rasp, $this->u);
             return;
         }
 
         $this->replyText("❌ Ты не студент, либо не зарегистрировался");
-    }
-
-    // Расписание на завтра
-    public function tomorrowStudentRasp() {
-        
     }
     
     // Показывает расписание текущего препода
@@ -344,6 +340,7 @@ class ScheduleController extends Controller {
         $group_id = $data['group_id'];
         $group = $em->find(CollegeGroup::class, $group_id);
         $this->sendRasp($group, $date);
+        addStat(FunctionNames::OtherRasp, $this->u);
     }
 
     // последний шаг при показе расписания определённого преподавателя
@@ -354,6 +351,7 @@ class ScheduleController extends Controller {
         $employee_id = $data['employee_id'];
         $employee = $em->find(Employee::class, $employee_id);
         $this->sendTeacherRasp($employee, $date);
+        addStat(FunctionNames::TeacherRasp, $this->u);
     }
 
     // последний шаг при показе расписания кабинета
