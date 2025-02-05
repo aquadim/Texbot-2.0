@@ -1,7 +1,7 @@
 <?php
 // Сотрудник техникума
 
-namespace BotKit\Entities;
+namespace Botkit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 
@@ -25,6 +25,10 @@ class Employee {
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $patronymic = null;
 
+    // Скрыт?
+    #[ORM\Column(type: 'integer', nullable: false)]
+    private int $hidden = 0;
+
     #region getters
     public function getId() : ?int {
         return $this->id;
@@ -41,6 +45,10 @@ class Employee {
     public function getPatronymic() : ?string {
         return $this->patronymic;
     }
+
+    public function getHidden() : bool {
+        return boolval($this->hidden);
+    }
     #endregion
 
     #region setters
@@ -54,6 +62,10 @@ class Employee {
     
     public function setPatronymic(?string $patronymic) : void {
         $this->patronymic = $patronymic;
+    }
+
+    public function setHidden(bool $value) : void {
+        $this->hidden = intval($value);
     }
     #endregion
 
