@@ -12,8 +12,8 @@ class UsedFunctionRepo extends EntityRepository {
 
     // Возвращает статистику использования функций
     public function getStats(
-        DateTimeImmutable $start,
-        DateTimeImmutable $end,
+        \DateTimeImmutable $start,
+        \DateTimeImmutable $end,
         CollegeGroup $group
     ) {
         $dql =
@@ -52,7 +52,7 @@ class UsedFunctionRepo extends EntityRepository {
         
         $stat = new UF();
         $stat->setFunction($func);
-        $stat->setUsedAt(new DateTimeImmutable("now"));
+        $stat->setUsedAt(new \DateTimeImmutable("now"));
         $stat->setCallerGroup($called_for);
 
         $em->persist($stat);
