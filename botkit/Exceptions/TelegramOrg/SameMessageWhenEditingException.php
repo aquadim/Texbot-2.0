@@ -3,6 +3,6 @@
 
 namespace BotKit\Exceptions\TelegramOrg;
 
-class SameMessageWhenEditingException extends Exception {
+class SameMessageWhenEditingException extends \Exception {
     
 }
