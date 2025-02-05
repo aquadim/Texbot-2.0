@@ -1,7 +1,7 @@
 <?php
 // Сотрудник техникума
 
-namespace Botkit\Entities;
+namespace BotKit\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
 
