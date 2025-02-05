@@ -27,12 +27,6 @@ class UsedFunction {
     #[ORM\ManyToOne(CollegeGroup::class)]
     #[ORM\JoinColumn(nullable: false)]
     private CollegeGroup $caller_group;
-
-    public function __construct(TexbotFunction $fn, CollegeGroup $caller_group) {
-        $this->fn = $fn;
-        $this->caller_group = $caller_group;
-        $this->used_at = \DateTimeImmutable::now()->setTime(0,0,0);
-    }
     
     #region getters
     public function getFunction() : TexbotFunction {
