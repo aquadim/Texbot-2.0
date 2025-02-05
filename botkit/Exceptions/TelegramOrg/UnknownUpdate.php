@@ -1,6 +1,6 @@
 <?php
 // Бот получил неизвестное событие.
-namespace BotKit\Exceptions;
+namespace BotKit\Exceptions\TelegramOrg;
 
 class UnknownUpdate extends Exception  {
     public function __construct($message) {
